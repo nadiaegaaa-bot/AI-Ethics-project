@@ -154,7 +154,7 @@
       tabs('siteTab', [['performance', 'Performance'], ['breakdown', 'Energy breakdown'], ['cost', 'Cost &amp; prices'], ['analysis', 'AI analysis']]) + body;
     const mrows = ms.map(m => agg(rows([m], [s])));
     mk('c1', { type: 'line', data: { labels: ms.map(mLabel), datasets: [{ label: 'PUE', data: mrows.map(r => +r.pue.toFixed(3)), borderColor: C.purple, backgroundColor: C.purple, tension: 0, pointRadius: 3 }] },
-      options: opts({ plugins: { legend: { display: false }, overlays: { hline: { y: D.pueTarget, label: `Target ≤ ${D.pueTarget.toFixed(2)}` } } },
+      options: opts({ plugins: { legend: { display: false }, overlays: { hline: { y: D.pueTarget, label: `Target ${D.pueTarget.toFixed(2)}` } } },
         scales: { x: { grid: { display: false } }, y: { suggestedMin: D.pueTarget - 0.05, suggestedMax: Math.max(...mrows.map(r => r.pue)) + 0.04 } } }) });
     const last = mrows.at(-1);
     if (document.getElementById('c2')) {
