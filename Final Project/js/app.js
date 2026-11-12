@@ -10,7 +10,10 @@
     'OS-IX': { location: 'Oslo', country: 'Norway' },
     'DK01': { location: 'Esbjerg', country: 'Denmark' },
   };
-  const SITES = ['OS-IX', 'N01', 'DK01'].filter(s => D.monthly.some(r => r.site === s));
+  const KNOWN = ['OS-IX', 'N01', 'DK01'];
+  const SITES = [...KNOWN.filter(s => D.monthly.some(r => r.site === s)), ...[...new Set(D.monthly.map(r => r.site))].filter(s => !KNOWN.includes(s)).sort()];
+  SITES.forEach(s => { if (!SITE_INFO[s]) SITE_INFO[s] = { location: s, country: '' }; });
+  const UPLOADS = D.uploads || [];
   const MONTHS = [...new Set(D.monthly.map(r => r.month))].sort();
   const LAST = MONTHS.at(-1);
   const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -117,7 +120,8 @@
     return `<div class="delta"><span class="${good ? 'up-good' : 'up-bad'}">${ic(up ? 'up' : 'dn', 12)} ${pctS(d)}</span> ${periodMonths().prevLabel}</div>`;
   };
   const kpi = (label, value, foot = '') => `<div class="card kpi"><div class="label">${label}</div><div class="value">${value}</div>${foot}</div>`;
-  const badge = (t = 'Synthetic data') => `<span class="badge" title="Values are simulated in the source workbook, not measured Bulk data">${t}</span>`;
+  const badge = (t = 'Synthetic data') => `<span class="badge" title="Values are simulated in the source workbook, not measured Bulk data">${t}</span>` +
+    (UPLOADS.length && t === 'Synthetic data' ? ` <span class="badge up" title="${UPLOADS.map(u => u.name).join(', ')}">Includes uploaded data</span>` : '');
   const periodSelect = () => `<select data-bind="period">${Object.entries(PERIODS).map(([k, l]) => `<option value="${k}" ${k === state.period ? 'selected' : ''}>${l}</option>`).join('')}</select>`;
   const siteSelect = () => `<select data-bind="site">${SITES.map(s => `<option ${s === state.site ? 'selected' : ''}>${s}</option>`).join('')}</select>`;
   const rangeLabel = (ms = periodMonths().cur) => ms.length === 1 ? mLong(ms[0]) : `${mLong(ms[0])} – ${mLong(ms.at(-1))}`;
@@ -171,6 +175,11 @@
     const lastRow = mrows.at(-1);
     const info = SITE_INFO[s] || {};
     let body = '';
+    if (!lastRow) {
+      app.innerHTML = head(`Site: ${s}`, `${esc(info.location)} · ${rangeLabel()}`, periodSelect() + siteSelect()) +
+        `<div class="card"><div class="insight"><span style="color:${C.blue}">${ic('info')}</span><div><b>No data for ${s} in this period</b>Choose another period or site.</div></div></div>`;
+      return;
+    }
     if (state.siteTab === 'performance') {
       body = `<div class="grid g4">
         ${kpi('PUE', a.pue.toFixed(3), delta(a.pue, p?.pue, true))}
@@ -306,11 +315,11 @@
         ${kpi('Utilised (all sites)', `${totalLoad.toFixed(1)} MW`, `<div class="delta">Average IT load, ${mLong(LAST)} ${badge()}</div>`)}
         ${kpi('Available headroom (N01)', cap && n01 ? `${(cap - n01.itLoadMW).toFixed(1)} MW` : 'n/a', `<div class="delta">${cap && n01 ? `${(n01.itLoadMW / cap * 100).toFixed(0)}% of N01 capacity used` : ''}</div>`)}
       </div>
-      <div class="grid g3">${SITES.map(s => card(lastRows.find(r => r.site === s))).join('')}</div>
+      <div class="grid g3">${SITES.map(s => lastRows.find(r => r.site === s)).filter(Boolean).map(card).join('')}</div>
       <div class="card" style="margin-bottom:12px"><h3>Average IT load by site (MW)</h3><div class="chart"><canvas id="c1"></canvas></div></div>
       ${note(`N01's ${cap} MW is the operating IT capacity reported for 2025 (Menon Economics, Aug 2026). It is capacity, not observed load. The workbook has no verified capacity for OS-IX or DK01, so no utilisation is shown for them.`)}`;
     const colors = { 'OS-IX': C.blue, 'N01': C.purple, 'DK01': C.green };
-    mk('c1', { type: 'line', data: { labels: MONTHS.map(mShort), datasets: SITES.map(s => ({ label: s, data: rows(MONTHS, [s]).map(r => r.itLoadMW), borderColor: colors[s], backgroundColor: colors[s], pointRadius: 0, borderWidth: 2 })) },
+    mk('c1', { type: 'line', data: { labels: MONTHS.map(mShort), datasets: SITES.map(s => ({ label: s, spanGaps: true, data: MONTHS.map(m => (rows([m], [s])[0] || {}).itLoadMW ?? null), borderColor: colors[s], backgroundColor: colors[s], pointRadius: 0, borderWidth: 2 })) },
       options: opts({ scales: { x: noGridX, y: { beginAtZero: true } }, plugins: { legend: { position: 'bottom' }, overlays: { hlines: cap ? [{ y: cap, label: `N01 capacity ${cap} MW` }] : [] } } }) });
   };
 
@@ -363,7 +372,7 @@
         options: opts({ scales: { x: noGridX, y: { suggestedMin: 1.15, suggestedMax: 1.42 } } }) });
     } else {
       const colors = { 'OS-IX': C.blue, 'N01': '#2f9e5f', 'DK01': C.amber };
-      mk('c1', { type: 'line', data: { labels: MONTHS.map(mShort), datasets: SITES.map(s => ({ label: zone(s), data: rows(MONTHS, [s]).map(r => r.priceNOKMWh), borderColor: colors[s], backgroundColor: colors[s], pointRadius: 0, borderWidth: 2 })) },
+      mk('c1', { type: 'line', data: { labels: MONTHS.map(mShort), datasets: SITES.map(s => ({ label: zone(s), spanGaps: true, data: MONTHS.map(m => (rows([m], [s])[0] || {}).priceNOKMWh ?? null), borderColor: colors[s], backgroundColor: colors[s], pointRadius: 0, borderWidth: 2 })) },
         options: opts({ scales: { x: noGridX, y: { beginAtZero: true } } }) });
     }
     mk('c2', { type: 'line', data: { labels: n01.map(r => mShort(r.month)), datasets: [{ label: 'NOK/MWh', data: n01.map(r => r.priceNOKMWh), borderColor: '#2f9e5f', backgroundColor: 'rgba(47,158,95,0.35)', fill: true, pointRadius: 0, borderWidth: 1.5 }] },
@@ -384,10 +393,64 @@
   const allReports = () => [...store.get('reports', []), ...BUILT_IN];
   const fmtDate = d => { const x = new Date(d + 'T00:00:00'); return `${x.getDate()} ${MON[x.getMonth()]} ${x.getFullYear()}`; };
   pages.reports = () => {
-    app.innerHTML = head('Reports', 'Download generated reports', '<button class="btn" data-action="new-report">New report</button>') +
+    const ups = window.BulkUpload ? window.BulkUpload.list() : [];
+    const upload = `<div class="card upload-card" style="margin-bottom:12px"><h3>${ic('up', 15)} Upload a report to update the dashboard</h3>
+        <label class="dropzone" id="dropzone">
+          <input type="file" id="upload-input" accept=".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
+          <div>${ic('down', 22)}</div>
+          <b>Drop an Excel (.xlsx) or CSV file here, or click to choose</b>
+          <span class="small">Use the Bulk data workbook format, or a sheet with columns such as Month, Site, IT energy (MWh), Cooling (MWh), Other (MWh), Market price NOK/MWh. You'll see a preview before anything changes.</span>
+        </label>
+        <div class="row-end" style="justify-content:flex-start;margin-top:10px"><button class="btn ghost" data-action="template">${ic('file', 13)} Download template (current data as CSV)</button></div>
+        ${ups.length ? `<h3 style="margin-top:16px">Uploaded data (${ups.length})</h3>${ups.slice().reverse().map(u => `<div class="report"><span class="ic">${ic('db', 18)}</span><div><b>${esc(u.name)}</b><div class="small">${fmtDate(u.date.slice(0, 10))} · ${u.mode === 'replace' ? 'replaced monthly data' : 'merged'} · ${u.summary.monthlyRows} rows (${u.summary.added} new, ${u.summary.updated} updated)${u.summary.range ? ` · ${mShort(u.summary.range[0])} – ${mShort(u.summary.range[1])}` : ''}${u.summary.tables.length ? ` · ${u.summary.tables.length} other table(s)` : ''}</div></div><button class="btn ghost" data-action="remove-upload" data-id="${u.id}">Remove</button></div>`).join('')}
+          <div class="row-end" style="justify-content:flex-start"><button class="btn ghost" data-action="reset-uploads">Restore original data</button></div>` : ''}
+      </div>`;
+    app.innerHTML = head('Reports', 'Download generated reports or upload new data', '<button class="btn" data-action="new-report">New report</button>') + upload +
       `<div class="card">${allReports().map((r, i) => `<div class="report"><span class="ic">${ic('file', 18)}</span><div><b>${esc(r.title)}</b><div class="small">${fmtDate(r.date)} · ${r.type === 'XLSX' ? 'XLSX (CSV)' : r.type}</div></div><button class="btn ghost" data-download="${i}">${ic('down', 13)} Download</button></div>`).join('')}</div>
-      ${note('PDF reports open in a print view. Choose "Save as PDF" in the print dialog. Data exports download as CSV, which opens in Excel.')}`;
+      ${note('PDF reports open in a print view. Choose "Save as PDF" in the print dialog. Data exports download as CSV, which opens in Excel. Uploaded data is stored only in this browser.')}`;
+    const dz = document.getElementById('dropzone'), input = document.getElementById('upload-input');
+    input.addEventListener('change', () => { if (input.files[0]) handleUpload(input.files[0]); input.value = ''; });
+    ['dragenter', 'dragover'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.add('over'); }));
+    ['dragleave', 'drop'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.remove('over'); }));
+    dz.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) handleUpload(f); });
   };
+
+  const MONTHLY_HEADER = ['Month', 'Site', 'Zone', 'IT avg load (MW)', 'IT energy (MWh)', 'Cooling (MWh)', 'Other (MWh)', 'Total (MWh)', 'PUE', 'Outdoor °C', 'Price NOK/MWh', 'Spot-index cost NOK', 'Expected cooling (MWh)', 'Residual %', 'Alert', 'Provenance'];
+  const monthlyCsvRows = () => D.monthly.map(m => [m.month, m.site, m.zone, m.itLoadMW, m.itMWh, m.coolingMWh, m.otherMWh, m.totalMWh, m.pue, m.tempC, m.priceNOKMWh, m.costNOK, m.expectedCoolingMWh, m.residualPct, m.alert, m.provenance]);
+
+  async function handleUpload(file) {
+    const busy = modal(`<h3 style="margin-top:0">Reading ${esc(file.name)}…</h3><p class="small">Nothing changes until you confirm.</p>`);
+    let parsed;
+    try { parsed = await window.BulkUpload.parseFile(file); }
+    catch (err) {
+      busy.remove();
+      modal(`<h3 style="margin-top:0">Could not use this file</h3><p>${esc(err.message)}</p><div class="row-end"><button class="btn" data-close>OK</button></div>`);
+      return;
+    }
+    busy.remove();
+    const sm = parsed.summary, tableNames = { benchmarks: 'Competitor benchmarks', peerMonthly: 'Peer scenarios', facts: 'Company facts', sources: 'Source register', dictionary: 'Data dictionary', guide: 'Workbook guide', dashboardSummary2025: 'Dashboard summary' };
+    const w = parsed.warnings;
+    const bg = modal(`<h3 style="margin-top:0">Preview: ${esc(file.name)}</h3>
+      <table>
+        <tr><td>Monthly rows found</td><td><b>${sm.monthlyRows}</b>${sm.range ? ` (${mLong(sm.range[0])} – ${mLong(sm.range[1])})` : ''}</td></tr>
+        ${sm.monthlyRows ? `<tr><td>New site-months</td><td><b>${sm.added}</b></td></tr><tr><td>Updated site-months</td><td><b>${sm.updated}</b></td></tr>
+        <tr><td>Sites</td><td>${sm.sites.map(esc).join(', ')}${sm.newSites.length ? ` <span class="badge up">new: ${sm.newSites.map(esc).join(', ')}</span>` : ''}</td></tr>
+        <tr><td>Cooling review flags</td><td>${sm.flags}</td></tr>` : ''}
+        ${sm.tables.length ? `<tr><td>Other tables replaced</td><td>${sm.tables.map(t => tableNames[t] || t).join(', ')}</td></tr>` : ''}
+      </table>
+      ${w.length ? `<details class="warn-list"><summary>${w.length} warning(s)</summary><ul>${w.slice(0, 40).map(x => `<li>${esc(x)}</li>`).join('')}${w.length > 40 ? `<li>…and ${w.length - 40} more</li>` : ''}</ul></details>` : '<p class="small up-good">No problems found.</p>'}
+      ${sm.monthlyRows ? `<label>How should the monthly rows be used?</label>
+      <select id="up-mode"><option value="merge">Merge: update matching months, add new ones (recommended)</option><option value="replace">Replace: use only the uploaded monthly rows</option></select>` : ''}
+      <p class="small">The upload is saved in this browser and can be removed again under Reports. Uploaded rows without a provenance column are labelled "UPLOADED".</p>
+      <div class="row-end"><button class="btn ghost" data-close>Cancel</button><button class="btn" id="up-apply" ${sm.monthlyRows || sm.tables.length ? '' : 'disabled'}>Update dashboard</button></div>`);
+    bg.querySelector('#up-apply').onclick = () => {
+      const mode = bg.querySelector('#up-mode')?.value || 'merge';
+      try { window.BulkUpload.apply(file.name, parsed, mode); }
+      catch (err) { alert(err.message); return; }
+      sessionStorage.setItem('bulk2.flash', `Dashboard updated from ${file.name}.`);
+      location.hash = 'overview'; location.reload();
+    };
+  }
 
   function reportTable(months) {
     return `<table><tr><th>Site</th><th>IT (MWh)</th><th>Cooling (MWh)</th><th>Other (MWh)</th><th>Total (MWh)</th><th>PUE</th><th>Spot-index cost (NOK M)</th><th>Cooling flags</th></tr>
@@ -401,8 +464,7 @@
   };
   function downloadReport(r) {
     if (r.type === 'XLSX') {
-      csv(r.title.replace(/[^\w]+/g, '_') + '.csv', ['Month', 'Site', 'Zone', 'IT avg load (MW)', 'IT energy (MWh)', 'Cooling (MWh)', 'Other (MWh)', 'Total (MWh)', 'PUE', 'Outdoor °C', 'Price NOK/MWh', 'Spot-index cost NOK', 'Expected cooling (MWh)', 'Residual %', 'Alert', 'Provenance'],
-        D.monthly.map(m => [m.month, m.site, m.zone, m.itLoadMW, m.itMWh, m.coolingMWh, m.otherMWh, m.totalMWh, m.pue, m.tempC, m.priceNOKMWh, m.costNOK, m.expectedCoolingMWh, m.residualPct, m.alert, m.provenance]));
+      csv(r.title.replace(/[^\w]+/g, '_') + '.csv', MONTHLY_HEADER, monthlyCsvRows());
       return;
     }
     let months, extra = '';
@@ -491,7 +553,8 @@
       <div class="card" style="font-size:13px;line-height:1.7"><h3>Data file</h3>
         <p>Loaded from <code>js/data.js</code>, generated from <b>${esc(D.source)}</b> on ${esc(D.generated)}: ${D.monthly.length} site-months (${SITES.length} sites, ${mLong(MONTHS[0])} – ${mLong(LAST)}), ${D.benchmarks.length} competitor benchmarks, ${D.peerMonthly.length} peer scenario months, ${D.facts.length} company facts.</p>
         <p>To update after editing the Excel file, run <code>python3 tools/excel_to_data.py</code> in the <code>Final Project</code> folder.</p>
-        <p>Saved in this browser only: the period you selected, ticked AI actions and reports you created.</p>
+        <p>Uploaded data files: ${UPLOADS.length ? UPLOADS.map(u => `<b>${esc(u.name)}</b>`).join(', ') + ' (manage them on the Reports page)' : 'none'}.</p>
+        <p>Saved in this browser only: the period you selected, ticked AI actions, reports you created and uploaded data.</p>
         <button class="btn ghost" data-action="reset">Reset saved actions and reports</button></div>`;
   };
 
@@ -517,10 +580,19 @@
     const a = t.dataset.action;
     if (a === 'new-report') newReportModal();
     if (a === 'details') detailsModal(t.dataset.month);
+    if (a === 'template') csv('Bulk_monthly_data_template.csv', MONTHLY_HEADER, monthlyCsvRows());
+    if (a === 'remove-upload') { if (confirm('Remove this upload and recalculate the dashboard?')) { window.BulkUpload.remove(t.dataset.id); location.reload(); } }
+    if (a === 'reset-uploads') { if (confirm('Remove all uploaded data and go back to the original Excel data?')) { window.BulkUpload.resetAll(); location.reload(); } }
     if (a === 'reset') { store.set('actions', {}); store.set('reports', []); render(); alert('Saved actions and reports cleared.'); }
   });
   document.querySelectorAll('[data-icon]').forEach(el => { el.innerHTML = ic(el.dataset.icon); });
   window.addEventListener('hashchange', () => { render(); window.scrollTo(0, 0); });
   if (!PERIODS[state.period]) state.period = 'ytd';
   render();
+  const flash = sessionStorage.getItem('bulk2.flash');
+  if (flash) {
+    sessionStorage.removeItem('bulk2.flash');
+    const t = document.getElementById('pwa-toast');
+    if (t) { t.innerHTML = `${ic('check', 15)} ${esc(flash)}`; t.hidden = false; setTimeout(() => { t.hidden = true; }, 4000); }
+  }
 })();

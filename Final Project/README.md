@@ -28,6 +28,15 @@ python3 tools/excel_to_data.py
 
 Then bump `VERSION` in `sw.js` so installed copies pick up the change.
 
+## Uploading new data (Reports page)
+On **Reports → Upload a report to update the dashboard**, drop or choose a file:
+- **Excel (.xlsx)** in the Bulk data workbook format. The monthly sheet updates the numbers. Any of the other sheets present (benchmarks, peer scenarios, company facts, sources, dictionary, guide, Dashboard summary) replace those tables.
+- **CSV** with one row per site and month. Required columns are `Month`, `Site`, `IT energy (MWh)` and `Cooling (MWh)`. Optional columns are other overhead, total, price, temperature, expected cooling, IT load, alert and provenance. Comma or semicolon separators, comma decimals and months like `2026-10`, `Oct 2026` or `01.10.2026` all work. **Download template** gives you the current data in the right format to edit.
+
+A preview shows how many site-months are new or updated, any new sites, the cooling flags and warnings, all before anything changes. You can **merge** (update matching months, add new ones) or **replace** the monthly data. Missing values are calculated the same way as in the workbook: total = IT + cooling + other, PUE = total / IT, cost = total × price, and expected cooling uses formula M05. Rows above the 12% residual are flagged REVIEW.
+
+Uploads are stored only in your browser. Each one can be removed, or you can **Restore original data**. PDF files can't be read automatically, so upload the numbers as Excel or CSV.
+
 ## Pages
 - **Overview:** PUE, total energy, cooling energy and estimated cost, with change vs. the previous period. Energy by site. AI insights from the workbook's REVIEW flags.
 - **Sites:** four tabs. Performance shows the PUE trend vs. the 1.20 design target and an energy donut. Energy breakdown shows monthly bars. Cost & prices shows cost and the price index. AI analysis shows the cooling residual vs. the 12% threshold.

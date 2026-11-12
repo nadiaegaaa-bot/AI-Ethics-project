@@ -1,6 +1,6 @@
 /* Service worker: makes the dashboard installable and usable offline.
    Bump VERSION whenever app files change so users get the update. */
-const VERSION = 'bulk-v4';
+const VERSION = 'bulk-v5';
 const PRECACHE = [
   './',
   './index.html',
@@ -8,6 +8,7 @@ const PRECACHE = [
   './css/styles.css',
   './js/app.js',
   './js/data.js',
+  './js/upload.js',
   './js/pwa.js',
   './js/vendor/chart.umd.js',
   './icons/icon-192.png',

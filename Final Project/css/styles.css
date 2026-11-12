@@ -110,3 +110,13 @@ body.offline .offline-pill{display:block}
 .pwa-toast{position:fixed;right:18px;bottom:18px;z-index:20;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:12.5px;max-width:360px;box-shadow:0 8px 30px #0008;display:flex;gap:10px;align-items:center}
 .pwa-toast[hidden]{display:none}
 @media (display-mode: standalone){body{padding-top:env(safe-area-inset-top)}}
+/* Upload */
+.dropzone{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding:22px 16px;border:1.5px dashed #3b3f5c;border-radius:12px;background:#11142199;cursor:pointer;transition:border-color .15s,background .15s}
+.dropzone:hover,.dropzone.over{border-color:var(--purple);background:#1d1a3a}
+.dropzone b{font-size:13.5px}.dropzone .small{max-width:620px;line-height:1.5}
+.dropzone .icon{color:var(--purple)}
+.badge.up{background:#1f2f52;color:#9cc7ff}
+.warn-list{margin:10px 0;font-size:12px;color:#f6c86b}
+.warn-list ul{margin:6px 0 0;padding-left:18px;color:#c9ccda;max-height:180px;overflow:auto}
+.modal .btn[disabled]{opacity:.5;cursor:not-allowed}
+.pwa-toast .icon{color:var(--green)}
