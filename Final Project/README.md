@@ -1,29 +1,52 @@
 # Bulk – Energy Intelligence dashboard
 
-Final project for AI Ethics (5th semester, ESADE). A dark-themed energy dashboard for Bulk's data centre sites: OS-IX Oslo, N01 Kristiansand and DK01 Esbjerg. It is also a progressive web app (PWA), so you can install it and use it offline.
+Final project for AI Ethics (5th semester, ESADE). A dark-themed energy dashboard for Bulk's data centre sites: N01 (Vennesla/Kristiansand), OS-IX (Oslo) and DK01 (Esbjerg). It is also a progressive web app (PWA), so you can install it and use it offline.
 
-> **Data status:** `js/data.js` contains **placeholder data** that reproduces the numbers in the design screenshots. The Excel workbook data has not been added yet.
+**Live app:** <https://nadiaegaaa-bot.github.io/AI-Ethics-project/>
 
 ## How to open
-- **Quick look:** double-click `index.html`. The dashboard works straight from disk, but installing it and using it offline need a web address (see below).
-- **As an app:** open the hosted address in Chrome or Edge and click **Install app** in the sidebar, or the install icon in the address bar. On iPhone/iPad, use Safari's **Share → Add to Home Screen**. On a Mac with Safari, use **File → Add to Dock**.
-- **Locally over http:** in this folder, run `python3 -m http.server 8000` and open <http://localhost:8000>.
+- **As an app:** open the live link in Chrome or Edge and click **Install app** in the sidebar. On iPhone/iPad, use Safari's **Share → Add to Home Screen**. On a Mac with Safari, use **File → Add to Dock**. The installed app updates itself and works offline.
+- **From disk:** double-click `index.html`. Everything works, but installing and offline mode need the web address.
+
+## Data
+Every figure comes from `data/Bulk_Energy_Intelligence_Data_and_Competitor_Benchmarks.xlsx`. All sheets are used:
+
+| Workbook sheet | Used in |
+|---|---|
+| Bulk Monthly Synthetic (63 site-months, Jan 2025 – Sep 2026) | Overview, Sites, Energy & Cost, AI Insights, Capacity, Reports |
+| Competitor Benchmarks | Benchmarking → Reported PUE (verified), comparability notes |
+| Peer Synthetic Scenarios | Benchmarking → Monthly scenarios (synthetic) |
+| Real Company Facts | Capacity (N01 59 MW, 530 MW planned), PUE target 1.20, Data & Sources |
+| Dashboard | Data & Sources → Import check (2025 totals recalculated and matched) |
+| Sources & Methods, Data Dictionary, START HERE | Data & Sources |
+
+`js/data.js` is generated from the workbook by a script that uses only the Python standard library. After editing the Excel file, run this in the `Final Project` folder:
+
+```
+python3 tools/excel_to_data.py
+```
+
+Then bump `VERSION` in `sw.js` so installed copies pick up the change.
 
 ## Pages
-- **Overview:** PUE, total energy, cooling energy and cost; energy by site; AI insights.
-- **Sites:** a per-site view with four tabs. Performance shows the PUE trend vs. target and an energy breakdown donut. The other tabs are Energy breakdown, Cost & prices, and AI analysis.
-- **Energy & Cost:** monthly energy and cost, average price, renewable share, and cost by site.
-- **AI Insights:** the N01 cooling anomaly (actual vs. expected), suggested actions (ticks are saved), estimated impact, and a details pop-up.
-- **Capacity:** installed, utilised and headroom per site, with a status.
-- **Benchmarking:** PUE, energy cost and renewable share vs. competitors, plus the N01 electricity price.
-- **Reports:** download reports (PDF via the print dialog; the capacity forecast as CSV) and create new ones.
+- **Overview:** PUE, total energy, cooling energy and estimated cost, with change vs. the previous period. Energy by site. AI insights from the workbook's REVIEW flags.
+- **Sites:** four tabs. Performance shows the PUE trend vs. the 1.20 design target and an energy donut. Energy breakdown shows monthly bars. Cost & prices shows cost and the price index. AI analysis shows the cooling residual vs. the 12% threshold.
+- **Energy & Cost:** monthly energy and cost, average price, cooling share, and a cost-by-site table.
+- **AI Insights:** actual vs. expected cooling with the flagged months highlighted, a details pop-up, suggested actions and estimated impact.
+- **Capacity:** N01 load vs. its reported 59 MW, and IT load per site.
+- **Benchmarking:** verified reported PUE, synthetic monthly peer scenarios, and electricity price by zone.
+- **Reports:** PDF reports open in a print view, and the data export downloads as CSV. You can create new reports.
+- **Data & Sources:** verified facts, the source register, the data dictionary, the workbook guide and the import check.
 
-The period selector and the site selector recalculate every figure.
+## Ethics and limitations (from the workbook)
+- All monthly operating values are **synthetic** and are labelled "Synthetic data" in the UI.
+- Cost = MWh × a synthetic price index. It is not Bulk's invoice, hedge or tariff.
+- The "AI model" is a transparent heuristic: expected cooling = IT MWh × (0.115 + 0.0055 × max(temp − 8, 0) + site adjustment). It is not trained ML, and flags need engineer validation.
+- Peer PUE figures differ in year, scope and method, so they are shown as context, not as a ranking. STACK is listed without a number.
+- N01's 59 MW is reported capacity, not usage. OS-IX and DK01 capacity is unverified, so no utilisation is shown for them.
 
 ## PWA files
-- `manifest.webmanifest`: app name, colours, icons, and shortcuts to AI Insights, Energy & Cost and Reports.
-- `sw.js`: the service worker. It caches the app for offline use. Bump `VERSION` when you change files so that installed copies update.
-- `js/pwa.js`: registers the service worker and handles the install button, the "new version" prompt and the offline badge.
-- `icons/`: app icons (192, 512, maskable 512, Apple touch, favicon).
-
-On phones, the sidebar turns into a bottom tab bar.
+- `manifest.webmanifest`: app name, colours, icons and shortcuts.
+- `sw.js`: the service worker that caches the app for offline use.
+- `js/pwa.js`: handles the install button, the update prompt and the offline badge.
+- `icons/`: the app icons.
