@@ -1,6 +1,6 @@
 /* Service worker: makes the dashboard installable and usable offline.
    Bump VERSION whenever app files change so users get the update. */
-const VERSION = 'bulk-v3';
+const VERSION = 'bulk-v4';
 const PRECACHE = [
   './',
   './index.html',
@@ -18,7 +18,8 @@ const PRECACHE = [
 ];
 
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(VERSION).then(c => c.addAll(PRECACHE)));
+  // cache: 'reload' bypasses the browser's HTTP cache, so a new version never re-saves old files.
+  event.waitUntil(caches.open(VERSION).then(c => c.addAll(PRECACHE.map(u => new Request(u, { cache: 'reload' })))));
 });
 
 self.addEventListener('activate', event => {
@@ -37,7 +38,9 @@ self.addEventListener('message', event => {
 async function staleWhileRevalidate(request) {
   const cache = await caches.open(VERSION);
   const cached = await cache.match(request, { ignoreSearch: true });
-  const network = fetch(request).then(res => {
+  const sameOrigin = new URL(request.url).origin === location.origin;
+  // 'no-cache' makes the browser check with the server (cheap 304 if unchanged) instead of using a stale HTTP-cache copy.
+  const network = fetch(sameOrigin ? new Request(request, { cache: 'no-cache' }) : request).then(res => {
     if (res && (res.ok || res.type === 'opaque')) cache.put(request, res.clone());
     return res;
   }).catch(() => null);
@@ -51,7 +54,7 @@ self.addEventListener('fetch', event => {
 
   // Page navigations: network first so new versions show up, cached app shell when offline.
   if (req.mode === 'navigate') {
-    event.respondWith(fetch(req).catch(async () => (await caches.match('./index.html')) || Response.error()));
+    event.respondWith(fetch(req, { cache: 'no-cache' }).catch(async () => (await caches.match('./index.html')) || Response.error()));
     return;
   }
   // App files and Google Fonts.

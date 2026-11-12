@@ -23,6 +23,8 @@
             if (w.state === 'installed' && navigator.serviceWorker.controller) offerUpdate(w);
           });
         });
+        reg.update();
+        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') reg.update(); });
         let reloaded = false;
         navigator.serviceWorker.addEventListener('controllerchange', () => { if (!reloaded) { reloaded = true; location.reload(); } });
       } catch (e) { console.warn('Service worker registration failed', e); }
