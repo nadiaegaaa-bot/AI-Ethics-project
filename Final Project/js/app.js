@@ -323,59 +323,175 @@
       options: opts({ scales: { x: noGridX, y: { beginAtZero: true } }, plugins: { legend: { position: 'bottom' }, overlays: { hlines: cap ? [{ y: cap, label: `N01 capacity ${cap} MW` }] : [] } } }) });
   };
 
+  /* ---------- benchmarking: clickable competitor comparison ---------- */
+  const SEL_COLORS = ['#f6b93b', '#4fa3f0', '#ff7ab6', '#b39dff'];
+  const MAX_SEL = 4;
+  const compKey = b => `${b.operator} · ${b.facility}`;
+  const competitors = () => D.benchmarks.filter(b => !/^Bulk/i.test(b.operator) && !/TARGET/i.test(b.status || ''));
+  const peerNames = () => [...new Set(D.peerMonthly.map(r => r.peer))];
+  // Link a synthetic monthly series (e.g. "Verne Iceland") to its reported benchmark row.
+  const peerFor = b => {
+    const word = String(b.facility || '').split(' ')[0].toLowerCase();
+    return peerNames().find(n => n.toLowerCase() === `${b.operator} ${word}`.toLowerCase())
+      || (/portfolio/i.test(b.facility || '') ? peerNames().find(n => n === b.operator) : null) || null;
+  };
+  const benchForPeer = peer => competitors().find(b => peerFor(b) === peer);
+  state.benchSel = store.get('benchSel', []);
+  const selected = () => state.benchSel.filter(k => competitors().some(b => compKey(b) === k));
+  const selColor = k => SEL_COLORS[selected().indexOf(k)];
+  function toggleBench(k) {
+    let s = selected();
+    if (s.includes(k)) s = s.filter(x => x !== k);
+    else { if (s.length >= MAX_SEL) s.shift(); s.push(k); }
+    state.benchSel = s; store.set('benchSel', s);
+    setTimeout(render); // let Chart.js finish its click handler first
+  }
+  const peerStats = peer => {
+    const r = D.peerMonthly.filter(x => x.peer === peer && typeof x.pue === 'number');
+    if (!r.length) return null;
+    const months = r.map(x => x.month);
+    const bulk = months.map(m => agg(rows([m])).pue);
+    return {
+      months, n: r.length,
+      avg: r.reduce((t, x) => t + x.totalMWh, 0) / r.reduce((t, x) => t + x.itMWh, 0),
+      min: Math.min(...r.map(x => x.pue)), max: Math.max(...r.map(x => x.pue)),
+      bulkLower: r.filter((x, i) => bulk[i] && bulk[i] < x.pue).length,
+      bulkAvg: agg(rows(months)).pue, bulkMin: Math.min(...bulk.filter(Boolean)), bulkMax: Math.max(...bulk.filter(Boolean)),
+    };
+  };
+
+  function comparisonCard(b2025) {
+    const sel = selected().map(k => competitors().find(b => compKey(b) === k));
+    if (!sel.length) return `<div class="card compare-empty" style="margin-bottom:12px">${ic('target', 18)}<span><b>Click a competitor</b> in the chart, the list or the chart legend to compare it side by side with Bulk. You can pick up to ${MAX_SEL}.</span></div>`;
+    const stats = sel.map(b => peerFor(b) ? peerStats(peerFor(b)) : null);
+    const bulkStats = stats.find(Boolean);
+    const diff = b => {
+      if (typeof b.pue !== 'number') return '<span class="small">No published PUE</span>';
+      const d = b.pue - b2025.pue, rel = d / b2025.pue;
+      return `<span class="${d > 0 ? 'up-good' : d < 0 ? 'up-bad' : ''}">${d >= 0 ? '+' : ''}${d.toFixed(3)} (${pctS(rel)})</span><div class="small">${d > 0 ? 'Bulk lower (more efficient)' : d < 0 ? 'Competitor lower' : 'Same'}</div>`;
+    };
+    const vsTarget = p => typeof p === 'number' ? `${p - PUE_TARGET >= 0 ? '+' : ''}${(p - PUE_TARGET).toFixed(3)}` : '—';
+    const atScale = b => {
+      if (typeof b.pue !== 'number') return '—';
+      const mwh = b2025.it * (b.pue - b2025.pue), nok = mwh * b2025.price;
+      return `${mwh >= 0 ? '+' : '−'}${Math.abs(mwh / 1000).toFixed(1)} GWh<div class="small">${mwh >= 0 ? '+' : '−'}NOK ${Math.abs(nok / 1e6).toFixed(1)}M at Bulk's avg. price</div>`;
+    };
+    const link = u => /^https?:/.test(u || '') ? `<a href="${esc(u)}" target="_blank" rel="noopener">Report ${ic('ext', 11)}</a>` : esc(u || '—');
+    const rowsDef = [
+      ['Reported PUE', `<b>${b2025.pue.toFixed(3)}</b><div class="small">2025, synthetic</div>`, b => typeof b.pue === 'number' ? `<b>${b.pue.toFixed(2)}</b><div class="small">${esc(b.year ?? '')}</div>` : '<span class="small">Not published</span>'],
+      ['Difference vs. Bulk', '—', diff],
+      [`vs. Bulk design target ${PUE_TARGET.toFixed(2)}`, vsTarget(b2025.pue), b => vsTarget(b.pue)],
+      ['If Bulk ran at this PUE (2025)', '—', atScale],
+      ['Monthly scenario avg. (synthetic)', bulkStats ? bulkStats.bulkAvg.toFixed(3) : '—', (b, i) => stats[i] ? stats[i].avg.toFixed(3) : '<span class="small">No series</span>'],
+      ['Monthly range', bulkStats ? `${bulkStats.bulkMin.toFixed(3)} – ${bulkStats.bulkMax.toFixed(3)}` : '—', (b, i) => stats[i] ? `${stats[i].min.toFixed(3)} – ${stats[i].max.toFixed(3)}` : '—'],
+      ['Months where Bulk is lower', '—', (b, i) => stats[i] ? `${stats[i].bulkLower} of ${stats[i].n}` : '—'],
+      ['Reported energy', `${(b2025.total / 1000).toFixed(1)} GWh<div class="small">2025 facility, synthetic</div>`, b => typeof b.energyMWh === 'number' ? `${(b.energyMWh / 1000).toFixed(1)} GWh` : '<span class="small">Not available</span>'],
+      ['Energy scope', 'Facility electricity', b => esc(b.energyScope || '—')],
+      ['PUE type', 'Energy-weighted annual (total / IT)', b => esc(b.pueType || '—')],
+      ['Status', '<span class="badge">SYNTHETIC</span>', b => esc(b.status || '—')],
+      ['Relevance to Bulk', 'Subject of the dashboard', b => esc(b.relevance || '—')],
+      ['Caution', 'Simulated operating data', b => `<span class="small">${esc(b.cautions || '—')}</span>`],
+      ['Source', 'Workbook (M01)', b => link(b.source)],
+    ];
+    const headCells = sel.map(b => `<th><span class="chip" style="background:${selColor(compKey(b))}"></span>${esc(b.operator)}<div class="small">${esc(b.facility)}</div><button class="x" data-bench="${esc(compKey(b))}" title="Remove from comparison">×</button></th>`).join('');
+    return `<div class="card compare" style="margin-bottom:12px"><h3>${ic('target')} Side-by-side comparison <button class="btn ghost sm" data-action="bench-clear" style="margin-left:auto">Clear</button></h3>
+      <div class="table-wrap"><table class="cmp"><thead><tr><th></th><th><span class="chip" style="background:${C.green}"></span>Bulk<div class="small">All sites</div></th>${headCells}</tr></thead><tbody>
+      ${rowsDef.map(([label, bulk, f]) => `<tr><td class="small">${label}</td><td>${bulk}</td>${sel.map((b, i) => `<td>${f(b, i)}</td>`).join('')}</tr>`).join('')}
+      </tbody></table></div>
+      ${stats.some(Boolean) ? `<h3 style="margin-top:16px">Monthly PUE: Bulk vs. selected (synthetic scenarios)</h3><div class="chart"><canvas id="c3"></canvas></div>` : ''}
+      ${note('"If Bulk ran at this PUE" = Bulk\'s 2025 IT energy × (competitor PUE − Bulk PUE). It shows what the PUE gap means in energy and cost at Bulk\'s scale. It is an illustration, because years, scopes and methods differ.')}
+    </div>`;
+  }
+
   pages.benchmarking = () => {
     const b2025 = agg(rows(MONTHS.filter(m => m.startsWith('2025'))));
-    const numeric = D.benchmarks.filter(b => typeof b.pue === 'number' && b.status === 'VERIFIED');
+    const comps = competitors();
+    const numeric = comps.filter(b => typeof b.pue === 'number' && b.status === 'VERIFIED');
     // Independent peers: skip EcoDataCenter Falun (same operator as portfolio row).
     const peers = numeric.filter(b => !/Falun/.test(b.facility));
     const mkt = peers.reduce((t, b) => t + b.pue, 0) / peers.length;
-    const peerNames = [...new Set(D.peerMonthly.map(r => r.peer))];
+    const names = peerNames();
     const peerMonths = [...new Set(D.peerMonthly.map(r => r.month))].sort();
+    const sel = selected(), anySel = sel.length > 0;
+    const rankRow = (b, value, label) => {
+      const k = compKey(b), on = sel.includes(k);
+      return `<button class="rank pick ${on ? 'sel' : ''}" data-bench="${esc(k)}" style="${on ? `--sel:${selColor(k)}` : ''}" aria-pressed="${on}"><span>${label}</span><b>${value}</b><i class="tick">${on ? ic('check', 13) : '+'}</i></button>`;
+    };
     let left, right;
     if (state.benchTab === 'reported') {
-      left = ['Reported annual PUE (public reports)', 'c1'];
+      left = 'Reported annual PUE (public reports)';
       right = `<div class="rank me"><span>Bulk 2025 (synthetic)</span><b>${b2025.pue.toFixed(3)}</b></div>` +
-        numeric.map(b => `<div class="rank"><span>${esc(b.operator)} · ${esc(b.facility)} <span class="small">(${b.year})</span></span><b>${b.pue.toFixed(2)}</b></div>`).join('') +
+        comps.map(b => rankRow(b, typeof b.pue === 'number' ? b.pue.toFixed(2) : '—', `${esc(b.operator)} · ${esc(b.facility)} <span class="small">${b.year ? `(${b.year})` : '(no verified PUE)'}</span>`)).join('') +
         `<div class="rank"><span>Peer average (excl. Falun)</span><b>${mkt.toFixed(2)}</b></div>`;
     } else if (state.benchTab === 'monthly') {
-      left = ['Monthly PUE scenarios 2025', 'c1'];
-      right = peerNames.map(n => { const r = D.peerMonthly.filter(x => x.peer === n); const v = r.reduce((t, x) => t + x.totalMWh, 0) / r.reduce((t, x) => t + x.itMWh, 0); return `<div class="rank"><span>${esc(n)}</span><b>${v.toFixed(3)}</b></div>`; }).join('');
-      right = `<div class="rank me"><span>Bulk (all sites)</span><b>${b2025.pue.toFixed(3)}</b></div>` + right;
+      left = 'Monthly PUE scenarios 2025';
+      right = `<div class="rank me"><span>Bulk (all sites)</span><b>${b2025.pue.toFixed(3)}</b></div>` +
+        names.map(n => { const b = benchForPeer(n), st = peerStats(n); return b ? rankRow(b, st.avg.toFixed(3), esc(n)) : `<div class="rank"><span>${esc(n)}</span><b>${st.avg.toFixed(3)}</b></div>`; }).join('');
     } else {
-      left = ['Market price index by zone (NOK/MWh)', 'c1'];
+      left = 'Market price index by zone (NOK/MWh)';
       right = SITES.map(s => { const r = rows(MONTHS, [s]); const avg = r.reduce((t, x) => t + x.priceNOKMWh, 0) / r.length; return `<div class="rank"><span>${esc(zone(s))} (${s})</span><b>${avg.toFixed(0)}</b></div>`; }).join('');
     }
     const n01 = rows(MONTHS, ['N01']);
-    const hi = n01.reduce((m, r) => r.priceNOKMWh > m.priceNOKMWh ? r : m, n01[0]);
-    const avgP = n01.reduce((t, r) => t + r.priceNOKMWh, 0) / n01.length;
+    const hi = n01.length ? n01.reduce((m, r) => r.priceNOKMWh > m.priceNOKMWh ? r : m, n01[0]) : null;
+    const avgP = n01.length ? n01.reduce((t, r) => t + r.priceNOKMWh, 0) / n01.length : 0;
+    const selTake = sel.map(k => comps.find(b => compKey(b) === k)).filter(b => typeof b.pue === 'number')
+      .map(b => `${esc(b.operator)} (${esc(b.facility)}) reports ${b.pue.toFixed(2)}, which is ${Math.abs((b.pue - b2025.pue) / b2025.pue * 100).toFixed(1)}% ${b.pue > b2025.pue ? 'higher' : 'lower'} than Bulk.`).join(' ');
+    const showCompare = state.benchTab !== 'price';
     app.innerHTML = head('Benchmarking', `Compare Bulk's sites with selected competitors and market context`, '') +
       tabs('benchTab', [['reported', 'Reported PUE (verified)'], ['monthly', 'Monthly scenarios (synthetic)'], ['price', 'Electricity price']]) + `
-      <div class="grid g21"><div class="card"><h3>${left[0]}</h3><div class="chart tall"><canvas id="c1"></canvas></div></div><div class="card"><h3>${state.benchTab === 'price' ? 'Average price (all months)' : 'Average PUE'}</h3>${right}</div></div>
+      <div class="grid g21"><div class="card"><h3>${left}${showCompare ? '<span class="small" style="margin-left:auto;font-weight:400">Click to compare</span>' : ''}</h3><div class="chart tall"><canvas id="c1"></canvas></div></div><div class="card"><h3>${state.benchTab === 'price' ? 'Average price (all months)' : 'Average PUE'}</h3>${right}</div></div>
+      ${showCompare ? comparisonCard(b2025) : ''}
       <div class="grid g21"><div class="card"><h3>Electricity price N01 (NOK/MWh)</h3><div class="chart"><canvas id="c2"></canvas></div></div>
       <div class="card"><h3><span style="color:${C.green}">${ic('info')}</span> Key takeaway</h3><p class="takeaway">
-        Bulk's 2025 PUE in the synthetic data (${b2025.pue.toFixed(3)}) is ${((mkt - b2025.pue) / mkt * 100).toFixed(1)}% lower than the average reported by Nordic peers (${mkt.toFixed(2)}). Because Bulk's figure is simulated and the peers use different years, scopes and methods, this is an illustration, not a ranking.
-        N01's price index peaked in ${mLong(hi.month)} (${hi.priceNOKMWh.toFixed(0)} NOK/MWh), ${((hi.priceNOKMWh - avgP) / avgP * 100).toFixed(0)}% above its average.</p></div></div>
+        Bulk's 2025 PUE in the synthetic data (${b2025.pue.toFixed(3)}) is ${((mkt - b2025.pue) / mkt * 100).toFixed(1)}% lower than the average reported by Nordic peers (${mkt.toFixed(2)}). ${selTake}
+        Because Bulk's figure is simulated and the peers use different years, scopes and methods, this is an illustration, not a ranking.
+        ${hi ? `N01's price index peaked in ${mLong(hi.month)} (${hi.priceNOKMWh.toFixed(0)} NOK/MWh), ${((hi.priceNOKMWh - avgP) / avgP * 100).toFixed(0)}% above its average.` : ''}</p></div></div>
       ${state.benchTab === 'reported' ? `<div class="card" style="margin-bottom:12px"><h3>Comparability notes</h3><table><thead><tr><th>Operator</th><th>Scope</th><th>Status</th><th>Caution</th><th>Source</th></tr></thead><tbody>
-        ${D.benchmarks.map(b => `<tr><td><b>${esc(b.operator)}</b><div class="small">${esc(b.facility)}</div></td><td>${esc(b.pueType)}</td><td>${esc(b.status)}</td><td>${esc(b.cautions)}</td><td>${/^https?:/.test(b.source || '') ? `<a href="${esc(b.source)}" target="_blank" rel="noopener">Link ${ic('ext', 11)}</a>` : esc(b.source)}</td></tr>`).join('')}
+        ${D.benchmarks.map(b => `<tr class="${sel.includes(compKey(b)) ? 'row-sel' : ''}"><td><b>${esc(b.operator)}</b><div class="small">${esc(b.facility)}</div></td><td>${esc(b.pueType)}</td><td>${esc(b.status)}</td><td>${esc(b.cautions)}</td><td>${/^https?:/.test(b.source || '') ? `<a href="${esc(b.source)}" target="_blank" rel="noopener">Link ${ic('ext', 11)}</a>` : esc(b.source)}</td></tr>`).join('')}
       </tbody></table></div>` : ''}
       ${state.benchTab === 'monthly' ? note('Monthly peer values are synthetic scenarios anchored only to each peer\'s published annual PUE. They are not observed peer operations.') : ''}`;
+
+    const pointer = (evt, els) => { evt.native.target.style.cursor = els.length ? 'pointer' : 'default'; };
     if (state.benchTab === 'reported') {
       const labels = ['Bulk 2025*', ...numeric.map(b => `${b.operator}${/portfolio/i.test(b.facility) ? '' : ' ' + b.facility.split(' ')[0]}`)];
-      mk('c1', { type: 'bar', data: { labels, datasets: [{ data: [+b2025.pue.toFixed(3), ...numeric.map(b => b.pue)], backgroundColor: [C.green, ...numeric.map(() => '#4a4f6a')], maxBarThickness: 60 }] },
-        options: opts({ plugins: { legend: { display: false }, overlays: { hlines: [{ y: PUE_TARGET, label: `Bulk design target ${PUE_TARGET.toFixed(2)}` }] }, tooltip: { callbacks: { afterLabel: c => c.dataIndex === 0 ? 'Synthetic, not reported' : `${numeric[c.dataIndex - 1].year} · ${numeric[c.dataIndex - 1].pueType}` } } }, scales: { x: noGridX, y: { min: 1.0, max: 1.45 } } }) });
+      const barColor = b => sel.includes(compKey(b)) ? selColor(compKey(b)) : anySel ? '#33374f' : '#4a4f6a';
+      mk('c1', { type: 'bar', data: { labels, datasets: [{ data: [+b2025.pue.toFixed(3), ...numeric.map(b => b.pue)], backgroundColor: [C.green, ...numeric.map(barColor)], maxBarThickness: 60 }] },
+        options: opts({
+          onHover: pointer,
+          onClick: (evt, els) => { const i = els[0]?.index; if (i > 0) toggleBench(compKey(numeric[i - 1])); },
+          interaction: { mode: 'nearest', intersect: false, axis: 'x' },
+          plugins: { legend: { display: false }, overlays: { hlines: [{ y: PUE_TARGET, label: `Bulk design target ${PUE_TARGET.toFixed(2)}` }] }, tooltip: { callbacks: { afterLabel: c => c.dataIndex === 0 ? 'Synthetic, not reported' : `${numeric[c.dataIndex - 1].year} · ${numeric[c.dataIndex - 1].pueType}\nClick to ${sel.includes(compKey(numeric[c.dataIndex - 1])) ? 'remove from' : 'add to'} comparison` } } },
+          scales: { x: noGridX, y: { min: 1.0, max: 1.45 } } }) });
     } else if (state.benchTab === 'monthly') {
       const bulkM = peerMonths.map(m => +agg(rows([m])).pue.toFixed(4));
       const shades = ['#e6e7ee', '#b8bbd0', '#8f93ad', '#6d7190', '#55597a'];
+      const ds = names.map((n, i) => {
+        const b = benchForPeer(n), k = b && compKey(b), on = k && sel.includes(k);
+        return { label: n, data: peerMonths.map(m => (D.peerMonthly.find(r => r.peer === n && r.month === m) || {}).pue),
+          borderColor: on ? selColor(k) : anySel ? '#3a3e57' : shades[i % shades.length], backgroundColor: on ? selColor(k) : 'transparent',
+          borderDash: !on && i % 2 ? [5, 4] : [], pointRadius: on ? 2.5 : 0, borderWidth: on ? 2.5 : 1 };
+      });
       mk('c1', { type: 'line', data: { labels: peerMonths.map(mShort), datasets: [
-        { label: 'Bulk (avg.)', data: bulkM, borderColor: C.green, backgroundColor: C.green, borderWidth: 2.5, pointRadius: 3 },
-        ...peerNames.map((n, i) => ({ label: n, data: peerMonths.map(m => (D.peerMonthly.find(r => r.peer === n && r.month === m) || {}).pue), borderColor: shades[i], borderDash: i % 2 ? [5, 4] : [], pointRadius: 0, borderWidth: 1 }))] },
-        options: opts({ scales: { x: noGridX, y: { suggestedMin: 1.15, suggestedMax: 1.42 } } }) });
+        { label: 'Bulk (avg.)', data: bulkM, borderColor: C.green, backgroundColor: C.green, borderWidth: 2.5, pointRadius: 3 }, ...ds] },
+        options: opts({
+          onHover: (evt, els, chart) => { evt.native.target.style.cursor = chart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, false).some(e => e.datasetIndex > 0) ? 'pointer' : 'default'; },
+          onClick: (evt, _e, chart) => { const hit = chart.getElementsAtEventForMode(evt, 'nearest', { intersect: false }, false)[0]; if (hit && hit.datasetIndex > 0) { const b = benchForPeer(names[hit.datasetIndex - 1]); if (b) toggleBench(compKey(b)); } },
+          plugins: { legend: { position: 'bottom', onClick: (e, item) => { if (item.datasetIndex > 0) { const b = benchForPeer(names[item.datasetIndex - 1]); if (b) toggleBench(compKey(b)); } }, onHover: e => { e.native.target.style.cursor = 'pointer'; } } },
+          scales: { x: noGridX, y: { suggestedMin: 1.15, suggestedMax: 1.42 } } }) });
     } else {
-      const colors = { 'OS-IX': C.blue, 'N01': '#2f9e5f', 'DK01': C.amber };
-      mk('c1', { type: 'line', data: { labels: MONTHS.map(mShort), datasets: SITES.map(s => ({ label: zone(s), spanGaps: true, data: MONTHS.map(m => (rows([m], [s])[0] || {}).priceNOKMWh ?? null), borderColor: colors[s], backgroundColor: colors[s], pointRadius: 0, borderWidth: 2 })) },
+      const palette = [C.blue, '#2f9e5f', C.amber, '#ff7ab6', '#b39dff'];
+      mk('c1', { type: 'line', data: { labels: MONTHS.map(mShort), datasets: SITES.map((s, i) => ({ label: zone(s) || s, spanGaps: true, data: MONTHS.map(m => (rows([m], [s])[0] || {}).priceNOKMWh ?? null), borderColor: palette[i % palette.length], backgroundColor: palette[i % palette.length], pointRadius: 0, borderWidth: 2 })) },
         options: opts({ scales: { x: noGridX, y: { beginAtZero: true } } }) });
     }
-    mk('c2', { type: 'line', data: { labels: n01.map(r => mShort(r.month)), datasets: [{ label: 'NOK/MWh', data: n01.map(r => r.priceNOKMWh), borderColor: '#2f9e5f', backgroundColor: 'rgba(47,158,95,0.35)', fill: true, pointRadius: 0, borderWidth: 1.5 }] },
+    // Comparison chart: Bulk vs. selected peers (monthly synthetic scenarios).
+    const selPeers = sel.map(k => comps.find(b => compKey(b) === k)).filter(b => b && peerFor(b));
+    if (selPeers.length) {
+      mk('c3', { type: 'line', data: { labels: peerMonths.map(mShort), datasets: [
+        { label: 'Bulk (avg.)', data: peerMonths.map(m => +agg(rows([m])).pue.toFixed(4)), borderColor: C.green, backgroundColor: C.green, borderWidth: 2.5, pointRadius: 2.5 },
+        ...selPeers.map(b => ({ label: `${b.operator} · ${b.facility}`, data: peerMonths.map(m => (D.peerMonthly.find(r => r.peer === peerFor(b) && r.month === m) || {}).pue), borderColor: selColor(compKey(b)), backgroundColor: selColor(compKey(b)), borderWidth: 2, pointRadius: 2 }))] },
+        options: opts({ plugins: { legend: { position: 'bottom' }, overlays: { hlines: [{ y: PUE_TARGET, label: `Bulk design target ${PUE_TARGET.toFixed(2)}` }] } }, scales: { x: noGridX, y: { suggestedMin: 1.15, suggestedMax: 1.42 } } }) });
+    }
+    if (n01.length) mk('c2', { type: 'line', data: { labels: n01.map(r => mShort(r.month)), datasets: [{ label: 'NOK/MWh', data: n01.map(r => r.priceNOKMWh), borderColor: '#2f9e5f', backgroundColor: 'rgba(47,158,95,0.35)', fill: true, pointRadius: 0, borderWidth: 1.5 }] },
       options: opts({ plugins: { legend: { display: false } }, scales: { x: { ...noGridX, ticks: { maxTicksLimit: 11 } }, y: { beginAtZero: true } } }) });
   };
 
@@ -572,14 +688,16 @@
     if (t.dataset.check) { const d = store.get('actions', {}); d[t.dataset.check] = t.checked; store.set('actions', d); render(); }
   });
   app.addEventListener('click', e => {
-    const t = e.target.closest('[data-tab],[data-go],[data-action],[data-download]');
+    const t = e.target.closest('[data-tab],[data-go],[data-action],[data-download],[data-bench]');
     if (!t) return;
     if (t.dataset.tab) { const [k, v] = t.dataset.tab.split(':'); state[k] = v; render(); }
     if (t.dataset.go) { if (t.dataset.site) state.site = t.dataset.site; if (location.hash === '#' + t.dataset.go) render(); else location.hash = t.dataset.go; window.scrollTo(0, 0); }
+    if (t.dataset.bench) { toggleBench(t.dataset.bench); return; }
     if (t.dataset.download) downloadReport(allReports()[+t.dataset.download]);
     const a = t.dataset.action;
     if (a === 'new-report') newReportModal();
     if (a === 'details') detailsModal(t.dataset.month);
+    if (a === 'bench-clear') { state.benchSel = []; store.set('benchSel', []); render(); }
     if (a === 'template') csv('Bulk_monthly_data_template.csv', MONTHLY_HEADER, monthlyCsvRows());
     if (a === 'remove-upload') { if (confirm('Remove this upload and recalculate the dashboard?')) { window.BulkUpload.remove(t.dataset.id); location.reload(); } }
     if (a === 'reset-uploads') { if (confirm('Remove all uploaded data and go back to the original Excel data?')) { window.BulkUpload.resetAll(); location.reload(); } }

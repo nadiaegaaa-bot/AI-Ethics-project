@@ -43,7 +43,7 @@ Uploads are stored only in your browser. Each one can be removed, or you can **R
 - **Energy & Cost:** monthly energy and cost, average price, cooling share, and a cost-by-site table.
 - **AI Insights:** actual vs. expected cooling with the flagged months highlighted, a details pop-up, suggested actions and estimated impact.
 - **Capacity:** N01 load vs. its reported 59 MW, and IT load per site.
-- **Benchmarking:** verified reported PUE, synthetic monthly peer scenarios, and electricity price by zone.
+- **Benchmarking:** verified reported PUE, synthetic monthly peer scenarios, and electricity price by zone. **Click any competitor** (a bar, a row in the list, or a name in the chart legend) to add it to a side-by-side comparison with Bulk, up to 4 at a time. The comparison shows PUE and the difference vs. Bulk, the gap to the 1.20 target, what the gap would mean in GWh and NOK at Bulk's scale, the monthly scenario range, energy scope, status, cautions and source. The selection is remembered.
 - **Reports:** PDF reports open in a print view, and the data export downloads as CSV. You can create new reports.
 - **Data & Sources:** verified facts, the source register, the data dictionary, the workbook guide and the import check.
 

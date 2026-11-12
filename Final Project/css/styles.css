@@ -120,3 +120,24 @@ body.offline .offline-pill{display:block}
 .warn-list ul{margin:6px 0 0;padding-left:18px;color:#c9ccda;max-height:180px;overflow:auto}
 .modal .btn[disabled]{opacity:.5;cursor:not-allowed}
 .pwa-toast .icon{color:var(--green)}
+/* Benchmark comparison */
+.rank.pick{width:100%;border:1px solid transparent;color:inherit;font:inherit;font-size:13px;cursor:pointer;text-align:left;align-items:center;gap:10px;transition:background .12s,border-color .12s}
+.rank.pick:hover{background:#242944;border-color:#3b3f5c}
+.rank.pick>span{flex:1}
+.rank.pick .tick{font-style:normal;width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;border:1px solid #4a4f6a;color:var(--muted);font-size:13px;flex-shrink:0}
+.rank.pick.sel{background:#1d2138;border-color:var(--sel);box-shadow:inset 3px 0 0 var(--sel)}
+.rank.pick.sel .tick{background:var(--sel);border-color:var(--sel);color:#0b0d17}
+.compare-empty{display:flex;gap:12px;align-items:center;font-size:13px;color:#c9ccda;border-style:dashed}
+.compare-empty .icon{color:var(--purple)}
+.compare h3 .btn.sm{padding:5px 10px;font-size:12px}
+.table-wrap{overflow-x:auto}
+table.cmp{min-width:560px}
+table.cmp th{vertical-align:top;position:relative;padding-right:22px;color:var(--text);font-weight:600}
+table.cmp th .small{font-weight:400}
+table.cmp td{vertical-align:top;padding-right:14px}
+table.cmp td:first-child{width:180px}
+table.cmp td:nth-child(2){background:#16231c}
+.chip{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px}
+table.cmp .x{position:absolute;top:4px;right:2px;background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;line-height:1}
+table.cmp .x:hover{color:var(--text)}
+tr.row-sel td{background:#1d2138}
