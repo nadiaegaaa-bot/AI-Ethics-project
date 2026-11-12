@@ -2,8 +2,17 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Bulk – Energy Intelligence</title>
+<meta name="description" content="Energy, cooling, cost, capacity and benchmark dashboard for Bulk's data centre sites." />
+<meta name="theme-color" content="#0b0d17" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png" />
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Bulk Energy" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="css/styles.css" />
@@ -23,12 +32,17 @@
     <a href="#capacity" data-page="capacity"><i data-icon="db"></i><span>Capacity</span></a>
     <a href="#benchmarking" data-page="benchmarking"><i data-icon="chart"></i><span>Benchmarking</span></a>
     <a href="#reports" data-page="reports"><i data-icon="file"></i><span>Reports</span></a>
-    <a href="#data" data-page="data"><i data-icon="book"></i><span>Data &amp; Sources</span></a>
   </nav>
-  <div class="nav-bottom"><a href="#settings" data-page="settings"><i data-icon="gear"></i><span>Settings</span></a></div>
+  <div class="nav-bottom">
+    <button id="install-btn" class="install-btn" hidden><i data-icon="down"></i><span>Install app</span></button>
+    <div class="offline-pill"><span>Offline</span></div>
+    <a href="#settings" data-page="settings"><i data-icon="gear"></i><span>Settings</span></a>
+  </div>
 </aside>
 <main id="app"></main>
+<div id="pwa-toast" class="pwa-toast" role="status" hidden></div>
 <script src="js/data.js"></script>
 <script src="js/app.js"></script>
+<script src="js/pwa.js"></script>
 </body>
 </html>
