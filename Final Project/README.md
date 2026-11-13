@@ -45,6 +45,9 @@ Uploads are stored only in your browser. Each one can be removed, or you can **R
 - **Verne:** Verne Iceland and Verne Finland are combined into one competitor (simple average 1.295, because per-site energy is not published).
 - **Settings → Contact & help:** a placeholder; this will be developed later.
 
+## AI Copilot
+The **Ask Copilot** button (bottom right, or **Ctrl+J** / **⌘J**) opens a chat panel on both the computer and the phone. It answers questions about cooling anomalies, optimisation potential, capacity risks, peer comparison, cost drivers, PUE and energy use. Answers are calculated in the browser from the loaded data with the dashboard's own formulas, with **no external AI service**, and are split into *Observations (from the data)*, *Possible explanations (not confirmed)* and *Suggested next steps*, plus the scope and basis. Name a site (N01, Oslo…) or a period (2025, last month) in the question to change the focus; otherwise the current page's context is used.
+
 ## Phone app vs. computer dashboard
 On screens up to 640 px wide (phones, including the installed app on a phone), the app shows only the core pages: **Overview, Sites, Energy & Cost and AI Insights**, in a bottom tab bar. The "About this platform" text is shortened to one line. Other pages redirect to the Overview on a phone. On a computer or tablet, the full dashboard with all pages and the full description is unchanged.
 
