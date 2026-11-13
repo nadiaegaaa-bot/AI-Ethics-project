@@ -254,3 +254,4 @@ nav .nav-group:first-child{margin-top:2px}
 .sidebar{overflow-y:auto}
 @media (max-width:900px){.nav-group{display:none}}
 @media (max-width:640px){.sidebar a[data-copilot]{display:none}}
+@media (min-width:901px){.sidebar{width:184px}}
