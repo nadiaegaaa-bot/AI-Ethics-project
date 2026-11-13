@@ -24,15 +24,21 @@
     <svg viewBox="0 0 40 24" width="32" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M2 22 L13 6 L20 15 L27 4 L38 22"/></svg>
     <div><div class="brand-name">Bulk</div><div class="brand-sub">Energy Intelligence</div></div>
   </div>
-  <nav id="nav">
+  <nav id="nav" aria-label="Main menu">
+    <div class="nav-group">Monitor</div>
     <a href="#overview" data-page="overview"><i data-icon="home"></i><span>Overview</span></a>
     <a href="#sites" data-page="sites"><i data-icon="sites"></i><span>Sites</span></a>
     <a href="#energy" data-page="energy"><i data-icon="bolt"></i><span>Energy &amp; Cost</span></a>
+    <div class="nav-group">Intelligence</div>
     <a href="#insights" data-page="insights"><i data-icon="spark"></i><span>AI Insights</span></a>
+    <a href="#copilot" data-copilot="1" role="button" aria-label="Open Copilot"><i data-icon="bot"></i><span>Copilot</span></a>
+    <div class="nav-group">Planning</div>
     <a href="#capacity" data-page="capacity"><i data-icon="db"></i><span>Capacity</span></a>
     <a href="#benchmarking" data-page="benchmarking"><i data-icon="chart"></i><span>Benchmarking</span></a>
+    <div class="nav-group">Reporting</div>
     <a href="#reports" data-page="reports"><i data-icon="file"></i><span>Reports</span></a>
-    <a href="#data" data-page="data"><i data-icon="book"></i><span>Data &amp; Sources</span></a>
+    <div class="nav-group">Administration</div>
+    <a href="#data" data-page="data"><i data-icon="methods"></i><span>Data &amp; Methods</span></a>
   </nav>
   <div class="nav-bottom">
     <button id="install-btn" class="install-btn" hidden><i data-icon="down"></i><span>Install app</span></button>

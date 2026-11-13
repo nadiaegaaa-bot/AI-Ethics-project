@@ -16,9 +16,9 @@ Every figure comes from `data/Bulk_Energy_Intelligence_Data_and_Competitor_Bench
 | Bulk Monthly Synthetic (63 site-months, Jan 2025 – Sep 2026) | Overview, Sites, Energy & Cost, AI Insights, Capacity, Reports |
 | Competitor Benchmarks | Benchmarking → Reported PUE (verified), comparability notes |
 | Peer Synthetic Scenarios | Benchmarking → Monthly scenarios (synthetic) |
-| Real Company Facts | Capacity (N01 59 MW, 530 MW planned), PUE target 1.20, Data & Sources |
-| Dashboard | Data & Sources → Import check (2025 totals recalculated and matched) |
-| Sources & Methods, Data Dictionary, START HERE | Data & Sources |
+| Real Company Facts | Capacity (N01 59 MW, 530 MW planned), PUE target 1.20, Data & Methods |
+| Dashboard | Data & Methods → Import check (2025 totals recalculated and matched) |
+| Sources & Methods, Data Dictionary, START HERE | Data & Methods |
 
 `js/data.js` is generated from the workbook by a script that uses only the Python standard library. After editing the Excel file, run this in the `Final Project` folder:
 
@@ -59,7 +59,7 @@ On screens up to 640 px wide (phones, including the installed app on a phone), t
 - **Capacity:** N01 load vs. its reported 59 MW, and IT load per site.
 - **Benchmarking:** verified reported PUE, synthetic monthly peer scenarios, and electricity price by zone. **Click any competitor** (a bar, a row in the list, or a name in the chart legend) to add it to a side-by-side comparison with Bulk, up to 4 at a time. The comparison shows PUE and the difference vs. Bulk, the gap to the 1.20 target, what the gap would mean in GWh and NOK at Bulk's scale, the monthly scenario range, energy scope, status, cautions and source. The selection is remembered.
 - **Reports:** PDF reports open in a print view, and the data export downloads as CSV. You can create new reports.
-- **Data & Sources:** verified facts, the source register, the data dictionary, the workbook guide and the import check.
+- **Data & Methods:** verified facts, the source register, the data dictionary, the workbook guide and the import check.
 
 ## Ethics and limitations (from the workbook)
 - All monthly operating values are **synthetic** and are labelled "Synthetic data" in the UI.
