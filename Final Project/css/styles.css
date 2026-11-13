@@ -179,3 +179,18 @@ h1 .badge{font-size:10.5px;vertical-align:middle;margin-left:4px;letter-spacing:
 .sidebar a[data-page]{position:relative;padding-right:26px}
 .sidebar .nav-info{position:absolute;right:4px;top:50%;transform:translateY(-50%);margin:0;opacity:0}
 .sidebar a:hover .nav-info,.sidebar .nav-info:focus-visible{opacity:1}
+/* Phone app: core pages only, short summary */
+.phone-only{display:none}
+@media (max-width:640px){
+  .phone-only{display:block}
+  .desktop-only{display:none}
+  .exec{padding:12px 14px}.exec p{margin:0}
+  .sidebar a[data-page]:not([data-page=overview]):not([data-page=sites]):not([data-page=energy]):not([data-page=insights]){display:none}
+  .sidebar{justify-content:space-around;overflow-x:visible}
+  nav{flex:1;justify-content:space-around}
+  .nav-bottom{flex:0 0 auto}
+  nav a{flex-direction:column;gap:3px;padding:6px 8px;font-size:10.5px;flex:1;align-items:center}
+  nav a span{display:block!important;white-space:nowrap}
+  .sidebar a[data-page]{padding-right:8px}
+}
+@media (max-width:640px){.sidebar .nav-info{display:none!important}}

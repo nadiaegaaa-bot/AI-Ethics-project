@@ -179,13 +179,14 @@
     const n01Last = rows([LAST], ['N01'])[0], cap = N01_CAPACITY ? N01_CAPACITY.value : null;
     const flagSites = [...new Set(flags.map(f => f.site))];
     return `<div class="card exec"><h3>${ic('book')} About this platform</h3>
-      <p>Bulk Energy Intelligence brings energy, cooling, cost, capacity and benchmark data for Bulk's data centres (${SITES.map(x => `${esc(x)} ${esc(SITE_INFO[x]?.location || '')}`).join(', ')}) together in one place. It helps operations, finance and management see how efficiently each site uses electricity, catch unusual cooling early, plan capacity, and compare Bulk with other Nordic operators. Hover over or click ${ic('info', 12)} on any card for a plain-language explanation.</p>
+      <p class="phone-only">Energy, cooling, cost and AI alerts for Bulk's data centres in one place.${flags.length ? ` <b>${flags.length} cooling flag(s)</b> need attention.` : ''}</p>
+      <div class="desktop-only"><p>Bulk Energy Intelligence brings energy, cooling, cost, capacity and benchmark data for Bulk's data centres (${SITES.map(x => `${esc(x)} ${esc(SITE_INFO[x]?.location || '')}`).join(', ')}) together in one place. It helps operations, finance and management see how efficiently each site uses electricity, catch unusual cooling early, plan capacity, and compare Bulk with other Nordic operators. Hover over or click ${ic('info', 12)} on any card for a plain-language explanation.</p>
       <ul class="exec-points">
         <li><b>Efficiency:</b> average PUE ${a.pue.toFixed(3)} for ${rangeLabel()}, ${a.pue <= PUE_TARGET ? 'within' : `${((a.pue - PUE_TARGET) / PUE_TARGET * 100).toFixed(1)}% above`} the ${PUE_TARGET.toFixed(2)} design target.</li>
         <li><b>Energy and cost:</b> ${gwh(a.total)} used, about ${nokM(a.cost)} at market prices.</li>
         <li><b>Attention:</b> ${flags.length ? `${flags.length} cooling flag(s) at ${flagSites.join(', ')}. See AI Insights.` : 'no cooling flags in this period.'}${n01Last && cap ? ` N01 uses ${(n01Last.itLoadMW / cap * 100).toFixed(0)}% of its ${cap} MW capacity.` : ''}</li>
       </ul>
-      <p class="small">Prototype for internal use. Operating figures are synthetic (from the project workbook); verified facts and sources are listed under Data &amp; Sources.</p></div>`;
+      <p class="small">Prototype for internal use. Operating figures are synthetic (from the project workbook); verified facts and sources are listed under Data &amp; Sources.</p></div></div>`;
   }
   pages.overview = () => {
     const a = cur(), p = prev(), ms = periodMonths().cur;
@@ -849,10 +850,15 @@
   const sitePicker = () => `<div class="site-picker" role="group" aria-label="Choose data centre"><span class="sp-label">${ic('sites', 14)} Data centre</span>${SITES.map(s => `<button type="button" class="sp ${s === state.site ? 'on' : ''}" data-pick-site="${esc(s)}" aria-pressed="${s === state.site}"><b>${esc(s)}</b><span>${esc(SITE_INFO[s]?.location || '')}</span></button>`).join('')}</div>`;
 
   /* ---------- router & events ---------- */
+  // On phones the app shows only the core pages; the computer dashboard keeps all pages.
+  const PHONE_PAGES = ['overview', 'sites', 'energy', 'insights'];
+  const phoneMQ = matchMedia('(max-width: 640px)');
+  phoneMQ.addEventListener('change', () => render());
   function render() {
     charts.forEach(c => c.destroy()); charts = [];
     const page = (location.hash || '#overview').slice(1);
-    const key = pages[page] ? page : 'overview';
+    let key = pages[page] ? page : 'overview';
+    if (phoneMQ.matches && !PHONE_PAGES.includes(key)) { key = 'overview'; history.replaceState(null, '', '#overview'); }
     document.querySelectorAll('[data-page]').forEach(a => a.classList.toggle('active', a.dataset.page === key));
     currentPage = key; hideInfo();
     pages[key]();

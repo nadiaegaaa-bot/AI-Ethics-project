@@ -45,6 +45,9 @@ Uploads are stored only in your browser. Each one can be removed, or you can **R
 - **Verne:** Verne Iceland and Verne Finland are combined into one competitor (simple average 1.295, because per-site energy is not published).
 - **Settings → Contact & help:** a placeholder; this will be developed later.
 
+## Phone app vs. computer dashboard
+On screens up to 640 px wide (phones, including the installed app on a phone), the app shows only the core pages: **Overview, Sites, Energy & Cost and AI Insights**, in a bottom tab bar. The "About this platform" text is shortened to one line. Other pages redirect to the Overview on a phone. On a computer or tablet, the full dashboard with all pages and the full description is unchanged.
+
 ## Pages
 - **Overview:** PUE, total energy, cooling energy and estimated cost, with change vs. the previous period. Energy by site. AI insights from the workbook's REVIEW flags.
 - **Sites:** four tabs. Performance shows the PUE trend vs. the 1.20 design target and an energy donut. Energy breakdown shows monthly bars. Cost & prices shows cost and the price index. AI analysis shows the cooling residual vs. the 12% threshold.
