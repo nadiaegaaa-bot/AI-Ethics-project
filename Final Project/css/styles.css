@@ -141,3 +141,41 @@ table.cmp td:nth-child(2){background:#16231c}
 table.cmp .x{position:absolute;top:4px;right:2px;background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;line-height:1}
 table.cmp .x:hover{color:var(--text)}
 tr.row-sel td{background:#1d2138}
+/* Info buttons */
+.card,.banner{position:relative}
+.card.has-info>h3,.card.has-info .label{padding-right:26px}
+.banner.has-info{padding-right:44px}
+.info-btn{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;padding:0;border:none;border-radius:50%;background:transparent;color:var(--muted);cursor:help;flex-shrink:0}
+.info-btn:hover,.info-btn:focus-visible{color:var(--text);background:#2a2e48;outline:none}
+.info-btn .icon{vertical-align:0}
+.info-btn.corner{position:absolute;top:10px;right:10px;z-index:2}
+.info-btn.title-info{vertical-align:middle;margin:0 4px 0 2px}
+.nav-info{margin-left:auto;width:18px;height:18px;opacity:.35}
+.sidebar a:hover .nav-info,.nav-info:focus-visible,.sidebar a.active .nav-info{opacity:1}
+.info-pop{position:fixed;z-index:60;width:320px;max-width:calc(100vw - 16px);background:#1d2137;border:1px solid #3d4262;border-radius:10px;padding:12px 14px;font-size:12.5px;line-height:1.5;color:#d6d8e4;box-shadow:0 12px 32px #000b}
+.info-pop[hidden]{display:none}
+.info-pop h4{margin:0 0 6px;font-size:13.5px;color:var(--text)}
+.info-pop .sec{margin-top:7px}
+.info-pop .sec b{display:block;font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:#a99bff;margin-bottom:1px}
+/* Confidential badge */
+h1 .badge{font-size:10.5px;vertical-align:middle;margin-left:4px;letter-spacing:.02em}
+.badge.conf{background:#3d1820;color:#ff9b9b;display:inline-flex;align-items:center;gap:4px}
+.badge.conf .icon{vertical-align:0}
+/* Executive summary */
+.exec{margin-bottom:12px;font-size:13px;line-height:1.6;color:#c9ccda;background:linear-gradient(135deg,#1a1d33,#141726)}
+.exec p{margin:0 0 8px}
+.exec-points{margin:0 0 8px;padding-left:18px}
+.exec-points li{margin:2px 0}
+.exec-points b{color:var(--text)}
+/* Data centre picker */
+.site-picker{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 14px}
+.sp-label{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--muted);margin-right:4px;text-transform:uppercase;letter-spacing:.04em}
+.sp{display:flex;flex-direction:column;align-items:flex-start;min-width:130px;padding:8px 14px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--text);font:inherit;cursor:pointer;text-align:left}
+.sp b{font-size:14px}.sp span{font-size:11px;color:var(--muted)}
+.sp:hover{border-color:#4a4f6a}
+.sp.on{background:#2a2550;border-color:var(--purple);box-shadow:inset 0 0 0 1px var(--purple)}
+@media (max-width:900px){.sidebar .nav-info{display:none}}
+@media (max-width:640px){.sp{min-width:0;flex:1}.info-pop{left:8px!important;right:8px;width:auto}}
+.sidebar a[data-page]{position:relative;padding-right:26px}
+.sidebar .nav-info{position:absolute;right:4px;top:50%;transform:translateY(-50%);margin:0;opacity:0}
+.sidebar a:hover .nav-info,.sidebar .nav-info:focus-visible{opacity:1}

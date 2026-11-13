@@ -1,6 +1,6 @@
 /* Bulk Energy Intelligence dashboard. Every number is computed from window.BULK_DATA (js/data.js), generated from the Excel workbook. */
 (() => {
-  const ICONS = {"home": "<path d=\"M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z\"/>", "sites": "<rect x=\"3\" y=\"7\" width=\"7\" height=\"14\"/><rect x=\"10\" y=\"3\" width=\"11\" height=\"18\"/><path d=\"M13 7h2M17 7h1M13 11h2M17 11h1M13 15h2M17 15h1\"/>", "bolt": "<path d=\"M13 2L4 14h7l-1 8 9-12h-7z\"/>", "spark": "<path d=\"M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z\"/>", "db": "<ellipse cx=\"12\" cy=\"5\" rx=\"8\" ry=\"3\"/><path d=\"M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3\"/>", "chart": "<path d=\"M3 3v18h18M8 17V11M13 17V7M18 17v-4\"/>", "file": "<path d=\"M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z\"/><path d=\"M14 3v5h5M9 13h6M9 17h6\"/>", "gear": "<circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z\"/>", "warn": "<path d=\"M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01\"/>", "bulb": "<path d=\"M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1V17h6v-.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z\"/>", "check": "<path d=\"M20 6L9 17l-5-5\"/>", "info": "<circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M12 16v-4M12 8h.01\"/>", "target": "<circle cx=\"12\" cy=\"12\" r=\"9\"/><circle cx=\"12\" cy=\"12\" r=\"5\"/><circle cx=\"12\" cy=\"12\" r=\"1\"/>", "leaf": "<path d=\"M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.5 19 2c1 2 2 4.2 2 8 0 5.5-4.8 10-10 10zM2 21c0-3 1.9-5.4 5.1-6\"/>", "link": "<path d=\"M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7\"/>", "down": "<path d=\"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3\"/>", "up": "<path d=\"M3 17l6-6 4 4 8-8M15 7h6v6\"/>", "dn": "<path d=\"M3 7l6 6 4-4 8 8M15 17h6v-6\"/>", "chev": "<path d=\"M9 18l6-6-6-6\"/>", "arrow": "<path d=\"M5 12h14M13 6l6 6-6 6\"/>", "db2": "<ellipse cx=\"12\" cy=\"5\" rx=\"8\" ry=\"3\"/><path d=\"M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 11v8c0 1.7 3.6 3 8 3s8-1.3 8-3v-8\"/>", "book": "<path d=\"M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z\"/><path d=\"M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5\"/>", "ext": "<path d=\"M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3\"/>"};
+  const ICONS = {"lock": "<rect x=\"5\" y=\"11\" width=\"14\" height=\"10\" rx=\"2\"/><path d=\"M8 11V7a4 4 0 0 1 8 0v4\"/>", "home": "<path d=\"M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z\"/>", "sites": "<rect x=\"3\" y=\"7\" width=\"7\" height=\"14\"/><rect x=\"10\" y=\"3\" width=\"11\" height=\"18\"/><path d=\"M13 7h2M17 7h1M13 11h2M17 11h1M13 15h2M17 15h1\"/>", "bolt": "<path d=\"M13 2L4 14h7l-1 8 9-12h-7z\"/>", "spark": "<path d=\"M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z\"/>", "db": "<ellipse cx=\"12\" cy=\"5\" rx=\"8\" ry=\"3\"/><path d=\"M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3\"/>", "chart": "<path d=\"M3 3v18h18M8 17V11M13 17V7M18 17v-4\"/>", "file": "<path d=\"M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z\"/><path d=\"M14 3v5h5M9 13h6M9 17h6\"/>", "gear": "<circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z\"/>", "warn": "<path d=\"M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01\"/>", "bulb": "<path d=\"M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1V17h6v-.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z\"/>", "check": "<path d=\"M20 6L9 17l-5-5\"/>", "info": "<circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M12 16v-4M12 8h.01\"/>", "target": "<circle cx=\"12\" cy=\"12\" r=\"9\"/><circle cx=\"12\" cy=\"12\" r=\"5\"/><circle cx=\"12\" cy=\"12\" r=\"1\"/>", "leaf": "<path d=\"M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.5 19 2c1 2 2 4.2 2 8 0 5.5-4.8 10-10 10zM2 21c0-3 1.9-5.4 5.1-6\"/>", "link": "<path d=\"M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7\"/>", "down": "<path d=\"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3\"/>", "up": "<path d=\"M3 17l6-6 4 4 8-8M15 7h6v6\"/>", "dn": "<path d=\"M3 7l6 6 4-4 8 8M15 17h6v-6\"/>", "chev": "<path d=\"M9 18l6-6-6-6\"/>", "arrow": "<path d=\"M5 12h14M13 6l6 6-6 6\"/>", "db2": "<ellipse cx=\"12\" cy=\"5\" rx=\"8\" ry=\"3\"/><path d=\"M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 11v8c0 1.7 3.6 3 8 3s8-1.3 8-3v-8\"/>", "book": "<path d=\"M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z\"/><path d=\"M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5\"/>", "ext": "<path d=\"M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3\"/>"};
   const ic = (n, s = 15) => `<svg class="icon" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICONS[n] || ''}</svg>`;
 
   const D = window.BULK_DATA;
@@ -25,6 +25,41 @@
   const PUE_TARGET = (fact('Bulk Data Centers', 'New build design PUE objective') || { value: 1.2 }).value;
   const THRESH = D.reviewThreshold;
   const zone = s => (D.monthly.find(r => r.site === s) || {}).zone || '';
+
+  // Combine competitors reported as separate sites without a portfolio figure (e.g. Verne Iceland + Verne Finland) into one entry.
+  (function mergeMultiSitePeers() {
+    const groups = {};
+    D.benchmarks.forEach(b => { if (!/^Bulk/i.test(b.operator) && !/TARGET/i.test(b.status || '')) (groups[b.operator] ||= []).push(b); });
+    Object.entries(groups).forEach(([op, list]) => {
+      const nums = list.filter(b => typeof b.pue === 'number');
+      if (list.length < 2 || nums.length < 2 || list.some(b => /portfolio/i.test(b.facility || ''))) return;
+      const pues = nums.map(b => b.pue), years = [...new Set(nums.map(b => b.year))];
+      const parts = nums.map(b => ({ facility: b.facility, pue: b.pue, year: b.year }));
+      const merged = {
+        operator: op, facility: nums.map(b => b.facility.replace(/ campus$/i, '')).join(' + '), year: years.join('/'),
+        pue: +(pues.reduce((t, v) => t + v, 0) / pues.length).toFixed(3), parts, merged: true,
+        pueType: `Simple average of ${parts.map(p => `${p.facility} ${p.pue.toFixed(2)}`).join(' and ')}. Not energy-weighted, because energy per site is not disclosed.`,
+        energyMWh: nums.every(b => typeof b.energyMWh === 'number') ? nums.reduce((t, b) => t + b.energyMWh, 0) : null,
+        energyScope: nums[0].energyScope, status: nums.every(b => b.status === 'VERIFIED') ? 'VERIFIED (combined)' : nums[0].status,
+        relevance: nums[0].relevance, source: nums[0].source,
+        cautions: nums.map(b => `${b.facility}: ${b.cautions}`).join(' ') + ' Combined figure calculated in the dashboard.',
+      };
+      const at = D.benchmarks.indexOf(list[0]);
+      D.benchmarks = D.benchmarks.filter(b => !list.includes(b));
+      D.benchmarks.splice(at, 0, merged);
+      const names = [...new Set(D.peerMonthly.map(r => r.peer))].filter(n => n.startsWith(op + ' '));
+      if (names.length > 1) {
+        const byM = {};
+        D.peerMonthly.filter(r => names.includes(r.peer)).forEach(r => {
+          const m = byM[r.month] ||= { month: r.month, peer: op, refYear: r.refYear, refPUE: merged.pue, totalMWh: 0, itMWh: 0, provenance: r.provenance };
+          m.totalMWh += r.totalMWh; m.itMWh += r.itMWh;
+        });
+        const first = D.peerMonthly.findIndex(r => names.includes(r.peer));
+        D.peerMonthly = D.peerMonthly.filter(r => !names.includes(r.peer));
+        D.peerMonthly.splice(first, 0, ...Object.values(byM).sort((x, y) => x.month.localeCompare(y.month)).map(m => ({ ...m, pue: +(m.totalMWh / m.itMWh).toFixed(4) })));
+      }
+    });
+  })();
 
   const app = document.getElementById('app');
   const store = {
@@ -125,7 +160,7 @@
   const periodSelect = () => `<select data-bind="period">${Object.entries(PERIODS).map(([k, l]) => `<option value="${k}" ${k === state.period ? 'selected' : ''}>${l}</option>`).join('')}</select>`;
   const siteSelect = () => `<select data-bind="site">${SITES.map(s => `<option ${s === state.site ? 'selected' : ''}>${s}</option>`).join('')}</select>`;
   const rangeLabel = (ms = periodMonths().cur) => ms.length === 1 ? mLong(ms[0]) : `${mLong(ms[0])} – ${mLong(ms.at(-1))}`;
-  const head = (title, sub, controls = '') => `<div class="head"><div><h1>${title}</h1><div class="sub">${sub}</div></div><div class="controls">${controls}</div></div>`;
+  const head = (title, sub, controls = '') => `<div class="head"><div><h1>${title} ${infoBtn('page:' + currentPage, 'title-info')}<span class="badge conf" title="Internal Bulk material. Do not share outside the company.">${ic('lock', 11)} Confidential</span></h1><div class="sub">${sub}</div></div><div class="controls">${controls}</div></div>`;
   const tabs = (key, items) => `<div class="tabs">${items.map(([k, l]) => `<button data-tab="${key}:${k}" class="${state[key] === k ? 'active' : ''}">${l}</button>`).join('')}</div>`;
   const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const note = t => `<div class="note">${ic('info', 13)} <span>${t}</span></div>`;
@@ -140,6 +175,18 @@
   /* ---------- pages ---------- */
   const pages = {};
 
+  function execSummary(a, flags) {
+    const n01Last = rows([LAST], ['N01'])[0], cap = N01_CAPACITY ? N01_CAPACITY.value : null;
+    const flagSites = [...new Set(flags.map(f => f.site))];
+    return `<div class="card exec"><h3>${ic('book')} About this platform</h3>
+      <p>Bulk Energy Intelligence brings energy, cooling, cost, capacity and benchmark data for Bulk's data centres (${SITES.map(x => `${esc(x)} ${esc(SITE_INFO[x]?.location || '')}`).join(', ')}) together in one place. It helps operations, finance and management see how efficiently each site uses electricity, catch unusual cooling early, plan capacity, and compare Bulk with other Nordic operators. Hover over or click ${ic('info', 12)} on any card for a plain-language explanation.</p>
+      <ul class="exec-points">
+        <li><b>Efficiency:</b> average PUE ${a.pue.toFixed(3)} for ${rangeLabel()}, ${a.pue <= PUE_TARGET ? 'within' : `${((a.pue - PUE_TARGET) / PUE_TARGET * 100).toFixed(1)}% above`} the ${PUE_TARGET.toFixed(2)} design target.</li>
+        <li><b>Energy and cost:</b> ${gwh(a.total)} used, about ${nokM(a.cost)} at market prices.</li>
+        <li><b>Attention:</b> ${flags.length ? `${flags.length} cooling flag(s) at ${flagSites.join(', ')}. See AI Insights.` : 'no cooling flags in this period.'}${n01Last && cap ? ` N01 uses ${(n01Last.itLoadMW / cap * 100).toFixed(0)}% of its ${cap} MW capacity.` : ''}</li>
+      </ul>
+      <p class="small">Prototype for internal use. Operating figures are synthetic (from the project workbook); verified facts and sources are listed under Data &amp; Sources.</p></div>`;
+  }
   pages.overview = () => {
     const a = cur(), p = prev(), ms = periodMonths().cur;
     const flags = flagged(ms), latestAny = flagged()[0];
@@ -149,7 +196,7 @@
         `<div class="insight" data-go="insights"><span style="color:${C.amber}">${ic('bulb')}</span><div><b>Potential saving</b>Investigate cooling system performance at ${[...new Set(flags.map(f => f.site))].join(', ')}. Excess cooling vs. model: ${excess.toFixed(0)} MWh (${(excess / a.total * 100).toFixed(2)}% of total energy), about ${nokM(flags.reduce((t, r) => t + excessNOK(r), 0))} at the spot index.</div></div>`
       : `<div class="insight"><span style="color:${C.green}">${ic('check')}</span><div><b>No cooling review flags in this period</b>All site-months are within ±${THRESH * 100}% of expected cooling.</div></div>` +
         (latestAny ? insightCard(latestAny) : '');
-    app.innerHTML = head('Overview', `Energy performance across all sites · ${rangeLabel()} ${badge()}`, periodSelect()) + `
+    app.innerHTML = head('Overview', `Energy performance across all sites · ${rangeLabel()} ${badge()}`, periodSelect()) + execSummary(a, flags) + `
       <div class="grid g4">
         ${kpi('Average PUE', a.pue.toFixed(3), delta(a.pue, p?.pue, true))}
         ${kpi('Total Energy', gwh(a.total), delta(a.total, p?.total))}
@@ -176,7 +223,7 @@
     const info = SITE_INFO[s] || {};
     let body = '';
     if (!lastRow) {
-      app.innerHTML = head(`Site: ${s}`, `${esc(info.location)} · ${rangeLabel()}`, periodSelect() + siteSelect()) +
+      app.innerHTML = head(`Site: ${s}`, `${esc(info.location)} · ${rangeLabel()}`, periodSelect()) + sitePicker() +
         `<div class="card"><div class="insight"><span style="color:${C.blue}">${ic('info')}</span><div><b>No data for ${s} in this period</b>Choose another period or site.</div></div></div>`;
       return;
     }
@@ -190,7 +237,7 @@
         <div class="card"><h3>Energy breakdown (${mLong(lastRow.month)})</h3><div class="donut-wrap"><div class="chart"><canvas id="c2"></canvas><div class="center-label"><b>${(lastRow.totalMWh / 1000).toFixed(1)}</b><span class="small">GWh</span></div></div><div class="legend">
           ${[['IT energy', lastRow.itMWh, C.purple], ['Cooling energy', lastRow.coolingMWh, C.blue], ['Other', lastRow.otherMWh, C.other]].map(([l, v, c]) => `<div style="display:flex"><span><span class="dot" style="background:${c}"></span>${l}</span><b>${(v / lastRow.totalMWh * 100).toFixed(0)}%</b></div>`).join('')}
         </div></div></div></div>
-        ${note(`Dashed line: Bulk's new-build design PUE target (≤ ${PUE_TARGET.toFixed(2)}), from the Annual Report 2025. It is a target, not a measured value.`)}`;
+        ${note(`Dashed line: Bulk's new-build design PUE target (max. ${PUE_TARGET.toFixed(2)}), from the Annual Report 2025. It is a target, not a measured value.`)}`;
     } else if (state.siteTab === 'breakdown') {
       body = `<div class="card"><h3>Monthly energy breakdown (GWh)</h3><div class="chart tall"><canvas id="c3"></canvas></div></div>`;
     } else if (state.siteTab === 'cost') {
@@ -201,9 +248,9 @@
       body = `<div class="grid g21"><div class="card"><h3>Cooling residual vs. model (%)</h3><div class="chart tall"><canvas id="c5"></canvas></div></div>
         <div class="card"><h3><span style="color:${C.purple}">${ic('spark')}</span> AI analysis for ${s}</h3>
         ${fl.length ? fl.map(r => insightCard(r)).join('') : `<div class="insight"><span style="color:${C.green}">${ic('check')}</span><div><b>No review flags</b>Cooling at ${s} is within ±${THRESH * 100}% of the model for ${rangeLabel()}.</div></div>`}
-        <div class="insight"><span style="color:${C.blue}">${ic('info')}</span><div><b>PUE vs. design target</b>PUE ${a.pue.toFixed(3)} vs. target ≤ ${PUE_TARGET.toFixed(2)}: ${a.pue <= PUE_TARGET ? 'within target' : `${((a.pue - PUE_TARGET) / PUE_TARGET * 100).toFixed(1)}% above target`}.</div></div></div></div>`;
+        <div class="insight"><span style="color:${C.blue}">${ic('info')}</span><div><b>PUE vs. design target</b>PUE ${a.pue.toFixed(3)} vs. target max. ${PUE_TARGET.toFixed(2)}: ${a.pue <= PUE_TARGET ? 'within target' : `${((a.pue - PUE_TARGET) / PUE_TARGET * 100).toFixed(1)}% above target`}.</div></div></div></div>`;
     }
-    app.innerHTML = head(`Site: ${s}`, `${esc(info.location)} · ${esc(zone(s))} · ${rangeLabel()} ${badge()}`, periodSelect() + siteSelect()) +
+    app.innerHTML = head(`Site: ${s}`, `${esc(info.location)} · ${esc(zone(s))} · ${rangeLabel()} ${badge()}`, periodSelect()) + sitePicker() +
       tabs('siteTab', [['performance', 'Performance'], ['breakdown', 'Energy breakdown'], ['cost', 'Cost &amp; prices'], ['analysis', 'AI analysis']]) + body;
     const labels = mrows.map(r => mShort(r.month));
     const pues = mrows.map(r => +r.pue.toFixed(4));
@@ -273,7 +320,7 @@
       impact = `<div class="card" style="margin-bottom:12px"><h3>Actual vs. expected cooling energy (MWh)</h3><div class="chart tall"><canvas id="c1"></canvas></div></div>`;
     }
     const others = flagged().filter(r => r.site !== s);
-    app.innerHTML = head('AI Insights', `AI-powered analysis of energy use, efficiency and capacity ${badge()}`, siteSelect() + periodSelect()) + banner + impact +
+    app.innerHTML = head('AI Insights', `AI-powered analysis of energy use, efficiency and capacity ${badge()}`, periodSelect()) + sitePicker() + banner + impact +
       (others.length ? `<div class="card" style="margin-bottom:12px"><h3>Flags at other sites</h3>${others.map(r => insightCard(r)).join('')}</div>` : '') +
       note(`How the "AI model" works: expected cooling = IT MWh × (0.115 + 0.0055 × max(temperature − 8, 0) + site adjustment). It is a transparent heuristic, not a trained machine-learning model, and the anomalies were injected into synthetic data (workbook M05/M06). Have site engineers confirm any finding before acting.`);
     const labels = siteRows.map(r => mShort(r.month));
@@ -327,10 +374,12 @@
   const SEL_COLORS = ['#f6b93b', '#4fa3f0', '#ff7ab6', '#b39dff'];
   const MAX_SEL = 4;
   const compKey = b => `${b.operator} · ${b.facility}`;
+  const fp = b => b.pue.toFixed(b.merged ? 3 : 2) + (b.parts ? `<span class="small"> avg. (${b.parts.map(p => `${esc(p.facility.replace(/ campus$/i, ''))} ${p.pue.toFixed(2)}`).join(', ')})</span>` : '');
   const competitors = () => D.benchmarks.filter(b => !/^Bulk/i.test(b.operator) && !/TARGET/i.test(b.status || ''));
   const peerNames = () => [...new Set(D.peerMonthly.map(r => r.peer))];
   // Link a synthetic monthly series (e.g. "Verne Iceland") to its reported benchmark row.
   const peerFor = b => {
+    if (b.merged) return peerNames().find(n => n === b.operator) || null;
     const word = String(b.facility || '').split(' ')[0].toLowerCase();
     return peerNames().find(n => n.toLowerCase() === `${b.operator} ${word}`.toLowerCase())
       || (/portfolio/i.test(b.facility || '') ? peerNames().find(n => n === b.operator) : null) || null;
@@ -378,7 +427,7 @@
     };
     const link = u => /^https?:/.test(u || '') ? `<a href="${esc(u)}" target="_blank" rel="noopener">Report ${ic('ext', 11)}</a>` : esc(u || '—');
     const rowsDef = [
-      ['Reported PUE', `<b>${b2025.pue.toFixed(3)}</b><div class="small">2025, synthetic</div>`, b => typeof b.pue === 'number' ? `<b>${b.pue.toFixed(2)}</b><div class="small">${esc(b.year ?? '')}</div>` : '<span class="small">Not published</span>'],
+      ['Reported PUE', `<b>${b2025.pue.toFixed(3)}</b><div class="small">2025, synthetic</div>`, b => typeof b.pue === 'number' ? `<b>${fp(b)}</b><div class="small">${esc(b.year ?? '')}</div>` : '<span class="small">Not published</span>'],
       ['Difference vs. Bulk', '—', diff],
       [`vs. Bulk design target ${PUE_TARGET.toFixed(2)}`, vsTarget(b2025.pue), b => vsTarget(b.pue)],
       ['If Bulk ran at this PUE (2025)', '—', atScale],
@@ -406,7 +455,7 @@
   pages.benchmarking = () => {
     const b2025 = agg(rows(MONTHS.filter(m => m.startsWith('2025'))));
     const comps = competitors();
-    const numeric = comps.filter(b => typeof b.pue === 'number' && b.status === 'VERIFIED');
+    const numeric = comps.filter(b => typeof b.pue === 'number' && /^VERIFIED/.test(b.status || ''));
     // Independent peers: skip EcoDataCenter Falun (same operator as portfolio row).
     const peers = numeric.filter(b => !/Falun/.test(b.facility));
     const mkt = peers.reduce((t, b) => t + b.pue, 0) / peers.length;
@@ -421,7 +470,7 @@
     if (state.benchTab === 'reported') {
       left = 'Reported annual PUE (public reports)';
       right = `<div class="rank me"><span>Bulk 2025 (synthetic)</span><b>${b2025.pue.toFixed(3)}</b></div>` +
-        comps.map(b => rankRow(b, typeof b.pue === 'number' ? b.pue.toFixed(2) : '—', `${esc(b.operator)} · ${esc(b.facility)} <span class="small">${b.year ? `(${b.year})` : '(no verified PUE)'}</span>`)).join('') +
+        comps.map(b => rankRow(b, typeof b.pue === 'number' ? fp(b) : '—', `${esc(b.operator)} · ${esc(b.facility)} <span class="small">${b.year ? `(${b.year})` : '(no verified PUE)'}</span>`)).join('') +
         `<div class="rank"><span>Peer average (excl. Falun)</span><b>${mkt.toFixed(2)}</b></div>`;
     } else if (state.benchTab === 'monthly') {
       left = 'Monthly PUE scenarios 2025';
@@ -435,7 +484,7 @@
     const hi = n01.length ? n01.reduce((m, r) => r.priceNOKMWh > m.priceNOKMWh ? r : m, n01[0]) : null;
     const avgP = n01.length ? n01.reduce((t, r) => t + r.priceNOKMWh, 0) / n01.length : 0;
     const selTake = sel.map(k => comps.find(b => compKey(b) === k)).filter(b => typeof b.pue === 'number')
-      .map(b => `${esc(b.operator)} (${esc(b.facility)}) reports ${b.pue.toFixed(2)}, which is ${Math.abs((b.pue - b2025.pue) / b2025.pue * 100).toFixed(1)}% ${b.pue > b2025.pue ? 'higher' : 'lower'} than Bulk.`).join(' ');
+      .map(b => `${esc(b.operator)} (${esc(b.facility)}) reports ${fp(b)}, which is ${Math.abs((b.pue - b2025.pue) / b2025.pue * 100).toFixed(1)}% ${b.pue > b2025.pue ? 'higher' : 'lower'} than Bulk.`).join(' ');
     const showCompare = state.benchTab !== 'price';
     app.innerHTML = head('Benchmarking', `Compare Bulk's sites with selected competitors and market context`, '') +
       tabs('benchTab', [['reported', 'Reported PUE (verified)'], ['monthly', 'Monthly scenarios (synthetic)'], ['price', 'Electricity price']]) + `
@@ -453,7 +502,7 @@
 
     const pointer = (evt, els) => { evt.native.target.style.cursor = els.length ? 'pointer' : 'default'; };
     if (state.benchTab === 'reported') {
-      const labels = ['Bulk 2025*', ...numeric.map(b => `${b.operator}${/portfolio/i.test(b.facility) ? '' : ' ' + b.facility.split(' ')[0]}`)];
+      const labels = ['Bulk 2025*', ...numeric.map(b => `${b.operator}${b.merged || /portfolio/i.test(b.facility) ? '' : ' ' + b.facility.split(' ')[0]}`)];
       const barColor = b => sel.includes(compKey(b)) ? selColor(compKey(b)) : anySel ? '#33374f' : '#4a4f6a';
       mk('c1', { type: 'bar', data: { labels, datasets: [{ data: [+b2025.pue.toFixed(3), ...numeric.map(b => b.pue)], backgroundColor: [C.green, ...numeric.map(barColor)], maxBarThickness: 60 }] },
         options: opts({
@@ -522,7 +571,7 @@
           <div class="row-end" style="justify-content:flex-start"><button class="btn ghost" data-action="reset-uploads">Restore original data</button></div>` : ''}
       </div>`;
     app.innerHTML = head('Reports', 'Download generated reports or upload new data', '<button class="btn" data-action="new-report">New report</button>') + upload +
-      `<div class="card">${allReports().map((r, i) => `<div class="report"><span class="ic">${ic('file', 18)}</span><div><b>${esc(r.title)}</b><div class="small">${fmtDate(r.date)} · ${r.type === 'XLSX' ? 'XLSX (CSV)' : r.type}</div></div><button class="btn ghost" data-download="${i}">${ic('down', 13)} Download</button></div>`).join('')}</div>
+      `<div class="card"><h3>${ic('file')} Available reports</h3>${allReports().map((r, i) => `<div class="report"><span class="ic">${ic('file', 18)}</span><div><b>${esc(r.title)}</b><div class="small">${fmtDate(r.date)} · ${r.type === 'XLSX' ? 'XLSX (CSV)' : r.type}</div></div><button class="btn ghost" data-download="${i}">${ic('down', 13)} Download</button></div>`).join('')}</div>
       ${note('PDF reports open in a print view. Choose "Save as PDF" in the print dialog. Data exports download as CSV, which opens in Excel. Uploaded data is stored only in this browser.')}`;
     const dz = document.getElementById('dropzone'), input = document.getElementById('upload-input');
     input.addEventListener('change', () => { if (input.files[0]) handleUpload(input.files[0]); input.value = ''; });
@@ -599,7 +648,7 @@
     if (!w) { alert('Please allow pop-ups to open the report.'); return; }
     w.document.write(`<html><head><title>${esc(r.title)}</title><style>body{font-family:Arial,sans-serif;padding:30px;color:#111}table{border-collapse:collapse;margin:10px 0}td,th{border:1px solid #ccc;padding:6px 10px;text-align:left;font-size:13px}.warn{background:#fff4d6;border:1px solid #f0c36d;padding:8px 12px;font-size:12px}</style></head><body>
       <h1>${esc(r.title)}</h1><p style="color:#666">Bulk Energy Intelligence · ${fmtDate(r.date)} · period ${rangeLabel(months)}</p>
-      <p class="warn">Prototype report. All operational values are SYNTHETIC (source: ${esc(D.source)}). Cost is facility MWh × a synthetic price index, not Bulk's invoice.</p>
+      <p class="warn"><b>CONFIDENTIAL – internal Bulk use only.</b> Prototype report. All operational values are SYNTHETIC (source: ${esc(D.source)}). Cost is facility MWh × a synthetic price index, not Bulk's invoice.</p>
       ${reportTable(months)}${extra}<p style="color:#666;font-size:12px">Use "Save as PDF" in the print dialog.</p><script>setTimeout(()=>print(),300)<\/script></body></html>`);
     w.document.close();
   }
@@ -661,7 +710,7 @@
     app.innerHTML = head('Data &amp; Sources', `Where every number comes from · ${esc(D.source)}`) +
       `<div class="banner"><span style="color:${C.amber}">${ic('warn', 22)}</span><div><b>Prototype on synthetic operating data</b><p>All monthly site measurements (energy, PUE, temperature, prices, cost) are simulated in the workbook. Verified items are N01's reported 59 MW IT capacity, Bulk's group financials and design PUE target, and the peers' published annual PUE. Real site-level data needs Bulk's permission.</p></div></div>` +
       tabs('dataTab', [['facts', 'Verified company facts'], ['sources', 'Source register'], ['dictionary', 'Data dictionary'], ['guide', 'Workbook guide'], ['check', 'Import check']]) +
-      `<div class="card">${body}</div>`;
+      `<div class="card" data-info-key="data:${t}">${body}</div>`;
   };
 
   pages.settings = () => {
@@ -671,8 +720,133 @@
         <p>To update after editing the Excel file, run <code>python3 tools/excel_to_data.py</code> in the <code>Final Project</code> folder.</p>
         <p>Uploaded data files: ${UPLOADS.length ? UPLOADS.map(u => `<b>${esc(u.name)}</b>`).join(', ') + ' (manage them on the Reports page)' : 'none'}.</p>
         <p>Saved in this browser only: the period you selected, ticked AI actions, reports you created and uploaded data.</p>
-        <button class="btn ghost" data-action="reset">Reset saved actions and reports</button></div>`;
+        <button class="btn ghost" data-action="reset">Reset saved actions and reports</button></div>
+      <div class="card" style="font-size:13px;line-height:1.7;margin-top:12px"><h3>Contact &amp; help</h3>
+        <p>A contact person and help line for questions about the platform and the numbers will be added here.</p>
+        <p class="small"><b>This will be developed later.</b></p></div>`;
   };
+
+  /* ---------- info buttons: plain-language explanations for every card and page ---------- */
+  const T12 = `${(THRESH * 100).toFixed(0)}%`, TGT = PUE_TARGET.toFixed(2);
+  const e = (title, what, basis, read) => ({ title, what, basis, read });
+  const PAGE_INFO = {
+    overview: e('Overview', 'A one-page summary of how all Bulk data centres are performing: efficiency (PUE), energy use, cooling, estimated cost and the latest AI flags.', 'All sites combined for the period chosen in the top-right menu. Operating figures come from the project workbook and are synthetic.', 'Start here, then open Sites, Energy & Cost or AI Insights for detail. Click ⓘ on any card for an explanation.'),
+    sites: e('Sites', 'A closer look at one data centre at a time.', 'Monthly data for the chosen site and period.', 'Choose the data centre with the buttons under the title. The tabs show performance, the energy breakdown, cost and prices, and the AI analysis for that site.'),
+    energy: e('Energy & Cost', 'How much electricity all sites use each month and what it would cost at market prices.', 'Monthly energy per site × the market price index for each site\'s price zone.', 'Use it to see whether cost changes come from using more energy or from price movements.'),
+    insights: e('AI Insights', 'Automatic checks that flag months where cooling used more energy than expected.', `A transparent formula estimates "expected" cooling from IT load and outdoor temperature. A month is flagged when actual cooling is more than ${T12} above it.`, 'A flag tells you where to look, not what is wrong. Site engineers should confirm before acting.'),
+    capacity: e('Capacity', 'How much of the available power capacity is used, and how much room is left for new customers.', `N01's reported IT capacity (${N01_CAPACITY ? N01_CAPACITY.value + ' MW' : 'n/a'}) and the average IT load per site in the latest month.`, 'Headroom shrinking towards zero means expansion has to be planned. Capacity for OS-IX and DK01 is not verified, so only their load is shown.'),
+    benchmarking: e('Benchmarking', 'How Bulk compares with other Nordic data centre operators.', 'Published annual PUE figures from competitors\' sustainability reports, plus synthetic monthly scenarios and electricity prices.', 'Click a competitor to compare it side by side with Bulk. The figures use different years and methods, so treat them as context, not a ranking.'),
+    reports: e('Reports', 'Download ready-made reports, or upload a new data file to update the numbers.', 'Reports are generated from the data currently loaded in the dashboard.', 'PDF reports open in a print view ("Save as PDF"). Uploads show a preview before anything changes.'),
+    data: e('Data & Sources', 'Where every number comes from, and which numbers are verified and which are simulated.', 'All sheets of the project workbook.', 'Use this page to check a source or a definition, or to show that the import matches the workbook.'),
+    settings: e('Settings', 'Information about the loaded data, saved preferences, and help.', 'Settings are stored in this browser only.', ''),
+  };
+  const INFO = [
+    // Overview
+    [/^overview\|about this platform/, e('About this platform', 'A short introduction to what the dashboard is for, plus the key numbers for the selected period.', 'The same data as the cards below.', 'The bullet points update when you change the period.')],
+    [/^overview\|average pue/, e('Average PUE (Power Usage Effectiveness)', 'How efficiently the data centres use electricity. PUE = total energy ÷ energy used by the IT equipment (servers, storage, network). 1.00 would mean every kWh goes to IT. 1.20 means 0.20 kWh extra for cooling, power losses and lighting for every kWh of IT.', 'Total facility MWh ÷ IT MWh for all sites in the selected period, weighted by energy.', `Lower is better. Bulk's design target for new builds is max. ${TGT}. The arrow compares with the previous comparable period: green = improvement, red = worse.`)],
+    [/^overview\|energy consumption by site/, e('Energy consumption by site', 'How much electricity each data centre used in the selected period, split into what it was used for.', 'Monthly energy per site, summed over the period, in GWh (1 GWh = 1,000 MWh).', 'Purple = IT (customer servers), blue = cooling, grey = other overhead such as power losses and lighting. A taller bar means more energy. A larger blue and grey part relative to the purple means a higher (worse) PUE.')],
+    [/^overview\|ai insights/, e('AI insights', `Automatic flags for months where cooling energy was more than ${T12} above what the model expected.`, 'Expected cooling = IT energy × (0.115 + 0.0055 × degrees above 8 °C + site adjustment). This is a simple, transparent formula, not a trained machine-learning model.', 'Click a flag to open AI Insights. "Potential saving" adds up the excess cooling in the flagged months. A flag points to where to look; engineers must confirm the cause.')],
+    // KPIs shared across pages
+    [/\|pue$/, e('PUE (Power Usage Effectiveness)', 'Total energy ÷ IT energy for this site. It shows how much extra energy the building needs on top of the servers themselves.', 'Total facility MWh ÷ IT MWh for the selected period, weighted by energy.', `Lower is better. The target for new builds is max. ${TGT}. Green arrow = improved vs. the previous period.`)],
+    [/\|total energy$/, e('Total energy', 'All electricity used: IT + cooling + other overhead.', 'Sum of "Total facility (MWh)" for the selected period and sites, shown in GWh (1 GWh = 1,000 MWh).', 'More energy is not automatically bad. It usually means customers use more IT. Look at PUE to judge efficiency.')],
+    [/\|it energy$/, e('IT energy', 'Electricity used by customers\' IT equipment. This is the "useful" energy the data centre exists to deliver.', 'Average IT load (MW) × hours in each month, summed for the period.', 'Grows when customers add servers. Rising IT energy usually means more business.')],
+    [/\|cooling energy$/, e('Cooling energy', 'Electricity used by chillers, fans and pumps to keep the IT equipment cool. Usually the largest overhead.', 'Monthly cooling MWh for the selected period and sites.', `Compare it with total energy (its share). Months where cooling is more than ${T12} above the model's expectation are flagged in AI Insights.`)],
+    [/\|cooling share$/, e('Cooling share', 'The part of all energy that goes to cooling.', 'Cooling MWh ÷ total facility MWh for the selected period.', 'Lower is better. The share is naturally higher in warm months. The arrow compares with the previous period (green = lower share).')],
+    [/\|(estimated energy cost|total cost|estimated energy cost)$/, e('Estimated energy cost', 'What the electricity would cost at market prices.', 'Total MWh × the monthly market price index (NOK/MWh) in each site\'s price zone (NO1, NO2, DK1). The price index in the workbook is synthetic.', 'This is not Bulk\'s actual bill: grid tariffs, taxes, hedging and customer pass-through are not included. Use it to see how prices and consumption drive cost.')],
+    [/\|avg\. price$/, e('Average electricity price', 'The average price paid per unit of electricity.', 'Estimated cost ÷ total energy, shown in NOK per kWh (1 NOK/kWh = 1,000 NOK/MWh).', 'Driven by the market. Winter months are usually more expensive. Red arrow = higher price than the previous period.')],
+    [/\|price zone$/, e('Price zone', 'The Nordic power market is split into price zones, and each site buys electricity at its zone\'s price.', 'NO1 = Oslo area (OS-IX), NO2 = southern Norway (N01), DK1 = western Denmark (DK01).', 'Prices can differ a lot between zones, so the same consumption costs different amounts at different sites.')],
+    [/\|avg\. outdoor temp/, e('Average outdoor temperature', 'The average monthly outside temperature at the site.', 'Synthetic weather values from the workbook, not measured readings.', 'Warmer weather needs more cooling. The expected-cooling model adds cooling for every degree above 8 °C.')],
+    // Sites
+    [/^sites\|pue trend/, e('PUE trend', 'How the site\'s efficiency changed month by month.', 'Total ÷ IT energy for each month.', `The dashed line is Bulk's design target (max. ${TGT}). Points above the line are less efficient than the target. A rising line means efficiency is getting worse, which is often seasonal (warmer weather).`)],
+    [/^sites\|energy breakdown/, e('Energy breakdown', 'What the site\'s electricity was used for in the latest month of the period.', 'IT, cooling and other MWh for that month. The centre shows the total in GWh.', 'A bigger purple (IT) share means a more efficient site, because less energy goes to overhead.')],
+    [/^sites\|monthly energy breakdown/, e('Monthly energy breakdown', 'IT, cooling and other energy for each month.', 'Monthly MWh for the selected site, shown in GWh.', 'Watch the blue (cooling) part. If it grows while purple (IT) stays flat, efficiency is falling.')],
+    [/^sites\|monthly cost/, e('Monthly cost and market price', 'How the estimated cost and the electricity price moved each month.', 'Bars = estimated cost in NOK million (left axis). Line = market price in NOK/MWh (right axis).', 'If cost follows the price line closely, changes come from the market rather than from using more energy.')],
+    [/^sites\|cooling residual/, e('Cooling residual vs. model', 'How much the actual cooling differed from what the model expected, in percent, for each month.', `(Actual − expected cooling) ÷ expected cooling. Expected cooling depends on IT load and outdoor temperature.`, `Amber bars above the dashed ${T12} line are flagged for review. Negative bars mean less cooling than expected.`)],
+    [/^sites\|ai analysis for/, e('AI analysis for this site', 'The cooling flags for this site and how its PUE compares with the design target.', `Cooling residual > ${T12} = review flag. PUE target max. ${TGT}.`, 'Click a flag to see it in AI Insights.')],
+    [/^sites\|no data for/, e('No data', 'The chosen site has no rows in the selected period.', 'Data loaded in the dashboard, including any uploads.', 'Choose another period or data centre.')],
+    // Energy & Cost
+    [/^energy\|monthly energy/, e('Monthly energy and cost', 'Total electricity use and estimated cost for all sites, month by month.', 'Bars = energy in GWh (left axis). Line = estimated cost in NOK million (right axis).', 'If the line rises while the bars stay level, prices went up. If both rise, the sites used more energy.')],
+    [/^energy\|cost by site/, e('Cost by site', 'Energy, efficiency, price and estimated cost for each data centre in the selected period.', 'Monthly site data summed for the period. Average price = cost ÷ energy.', 'Differences in price zone can matter as much as differences in consumption.')],
+    // AI Insights
+    [/^insights\|unusual increase in cooling/, e('Cooling alert', `The most recent month at this site where cooling was more than ${T12} above the model's expectation.`, 'Actual cooling vs. expected cooling (from IT load and temperature).', '"View details" shows the numbers behind the flag compared with the three months before.')],
+    [/^insights\|no unusual cooling/, e('No cooling alerts', `Every month at this site is within ±${T12} of expected cooling.`, 'Actual vs. expected cooling for all months.', 'No action needed. Flags at other sites are listed further down.')],
+    [/^insights\|actual vs\. expected cooling/, e('Actual vs. expected cooling', 'The site\'s cooling energy each month compared with what the model expected.', 'Purple line = actual cooling (synthetic data). Dashed line = expected cooling given IT load and outdoor temperature.', 'Where the purple line rises clearly above the dashed line, cooling used more than it should. Purple-shaded months are flagged (+%). The light shading marks the selected period.')],
+    [/^insights\|suggested actions/, e('Suggested actions', 'A follow-up checklist for the flag.', 'Standard first checks for unexpected cooling consumption.', 'Tick actions as they are done. Ticks are saved in this browser only.')],
+    [/^insights\|estimated impact/, e('Estimated impact', 'What fixing the cause could save.', 'Energy = excess cooling (actual − expected) in the flagged months. Cost = excess MWh × that month\'s price. Share = excess ÷ cooling energy in those months.', 'An upper estimate: it assumes all the excess can be removed.')],
+    [/^insights\|flags at other sites/, e('Flags at other sites', 'Cooling flags at the other data centres.', `Same rule: cooling > ${T12} above expected.`, 'Click one to switch to that site.')],
+    // Capacity
+    [/^capacity\|installed capacity/, e('Installed capacity (N01)', 'The maximum IT power the N01 site is built to supply to customers.', `Reported operating IT capacity for 2025 (Menon Economics, Aug 2026). The ${N01_PLANNED ? N01_PLANNED.value + ' MW' : ''} planned by 2031 is a projection, not built.`, 'It is capacity, not usage. Compare it with "Utilised" to see how full the site is.')],
+    [/^capacity\|utilised/, e('Utilised', 'How much IT power customers are using.', 'Sum of the average IT load (MW) across all sites in the latest month (synthetic).', 'This is an average. Short peaks can be higher.')],
+    [/^capacity\|available headroom/, e('Available headroom (N01)', 'How much more customer load N01 could take before it is full.', 'N01 reported capacity − N01 average IT load in the latest month.', 'Below about 25% headroom, expansion should be planned. The site card shows the status.')],
+    [/^capacity\|average it load by site/, e('Average IT load by site', 'How customer IT load developed over time at each site.', 'Average IT load in MW per month. The dashed line is N01\'s reported capacity.', 'A line approaching the dashed line means the site is filling up.')],
+    [/^capacity\|.+ · /, e('Site capacity', 'How full this data centre is.', 'Average IT load in the latest month. For N01 this is compared with its reported capacity.', 'Bar and status: below 75% = healthy headroom, 75–85% = plan expansion, above 85% = critical. Capacity for OS-IX and DK01 is not verified, so only their load is shown.')],
+    // Benchmarking
+    [/^benchmarking\|reported annual pue/, e('Reported annual PUE', 'The efficiency figures competitors publish in their sustainability reports, next to Bulk.', 'Annual PUE from each operator\'s own report. Bulk\'s value is the 2025 figure from the synthetic data (green). Verne\'s Iceland and Finland sites are combined.', `Lower is better. The dashed line is Bulk's design target ${TGT}. Click a bar to compare. Years, scopes and methods differ, so small gaps are not meaningful.`)],
+    [/^benchmarking\|monthly pue scenarios/, e('Monthly PUE scenarios', 'Illustrative month-by-month PUE lines for Bulk and the competitors.', 'Competitor lines are synthetic: generated around each competitor\'s published annual PUE. They are not real monthly data.', 'Use it to see seasonal patterns. Click a line or a legend name to compare.')],
+    [/^benchmarking\|market price index by zone/, e('Market price by zone', 'The monthly electricity price in each site\'s price zone.', 'Synthetic price index in NOK/MWh from the workbook.', 'Shows how much more expensive one zone can be than another, and when prices peak.')],
+    [/^benchmarking\|average pue/, e('Average PUE list', 'Each competitor\'s PUE next to Bulk.', 'Published annual figures (or synthetic scenario averages on that tab). The peer average leaves out EcoDataCenter Falun to avoid counting the same operator twice. Verne = simple average of Iceland and Finland.', 'Click a row (+) to add it to the side-by-side comparison, up to 4.')],
+    [/^benchmarking\|average price/, e('Average price', 'The average market price in each zone over all months.', 'Mean of the monthly price index per zone.', 'A higher average price makes the same efficiency more valuable.')],
+    [/^benchmarking\|(side-by-side comparison|click a competitor)/, e('Side-by-side comparison', 'A detailed comparison of Bulk with the competitors you selected.', 'Published figures plus the workbook\'s notes on scope, status and cautions. "If Bulk ran at this PUE" = Bulk\'s 2025 IT energy × (competitor PUE − Bulk PUE).', 'Green difference = Bulk is more efficient. Read the caution row before drawing conclusions.')],
+    [/^benchmarking\|electricity price n01/, e('Electricity price N01', 'The monthly market price in N01\'s price zone (NO2).', 'Synthetic price index in NOK/MWh.', 'Peaks show when energy efficiency saves the most money.')],
+    [/^benchmarking\|key takeaway/, e('Key takeaway', 'A short written conclusion of the comparison.', 'Generated automatically from the numbers on this page, including any competitors you selected.', 'Always read it with the comparability notes in mind.')],
+    [/^benchmarking\|comparability notes/, e('Comparability notes', 'Why the competitor figures are not directly comparable.', 'Scope, status and cautions recorded in the workbook for each source.', 'Check this before using a figure in a presentation.')],
+    // Reports
+    [/^reports\|upload a report/, e('Upload data', 'Update the dashboard with a new Excel (.xlsx) or CSV file.', 'The file is read in your browser. Missing values are calculated with the workbook\'s formulas.', 'You get a preview first. "Merge" updates matching months and adds new ones. Uploads are saved only in this browser and can be removed again.')],
+    [/^reports\|available reports/, e('Available reports', 'Ready-made reports generated from the current data.', 'The data loaded in the dashboard, including uploads.', 'PDF reports open in a print view. Choose "Save as PDF". The data export downloads as CSV for Excel.')],
+    // Data & Sources
+    [/^data\|prototype on synthetic/, e('Data status', 'Which numbers are verified and which are simulated.', 'The workbook\'s own classification.', 'Monthly operating figures are synthetic. Company facts and competitor PUE are taken from published reports.')],
+    [/^data\|data:facts/, e('Verified company facts', 'Facts about Bulk from annual reports and studies, such as revenue, capacity and targets.', 'Workbook sheet "Real Company Facts".', 'The class column shows whether a figure is reported, projected, a target or an estimate.')],
+    [/^data\|data:sources/, e('Source register', 'Every source used, with how it may and may not be used.', 'Workbook sheet "Sources & Methods".', 'Rows starting with M describe formulas and model assumptions.')],
+    [/^data\|data:dictionary/, e('Data dictionary', 'The definition and unit of each data field.', 'Workbook sheet "Data Dictionary".', 'Use it when you are unsure what a column means.')],
+    [/^data\|data:guide/, e('Workbook guide', 'The workbook\'s own instructions and limitations.', 'Workbook sheet "START HERE".', '')],
+    [/^data\|data:check/, e('Import check', 'Proof that the dashboard reads the workbook correctly.', 'The dashboard recalculates the workbook\'s 2025 summary from the monthly rows.', 'A ✓ means the dashboard value matches the workbook.')],
+    // Settings
+    [/^settings\|data file/, e('Data file', 'Which data is loaded and what is stored in this browser.', '', '')],
+    [/^settings\|contact/, e('Contact & help', 'Where to get help with the platform.', '', 'This will be developed later.')],
+  ];
+  let currentPage = 'overview';
+  const findInfo = (page, key) => INFO.findIndex(([re]) => re.test(`${page}|${key.toLowerCase().replace(/\s+/g, ' ').trim()}`));
+  const infoBtn = (data, cls = '') => `<button type="button" class="info-btn ${cls}" data-info="${data}" aria-label="What does this show?">${ic('info', 14)}</button>`;
+  function decorateInfo(page) {
+    app.querySelectorAll('.card, .banner').forEach(card => {
+      if (card.querySelector(':scope > .info-btn')) return;
+      const key = card.dataset.infoKey || (card.querySelector('.label, h3, b')?.textContent || '').trim();
+      const id = findInfo(page, key);
+      if (id < 0) console.warn('No info text for', page, key);
+      card.classList.add('has-info');
+      card.insertAdjacentHTML('afterbegin', infoBtn(id < 0 ? `page:${page}` : id, 'corner'));
+    });
+  }
+  const pop = document.createElement('div');
+  pop.className = 'info-pop'; pop.setAttribute('role', 'tooltip'); pop.hidden = true;
+  document.body.appendChild(pop);
+  let pinned = null;
+  function showInfo(btn) {
+    const id = btn.dataset.info, en = String(id).startsWith('page:') ? PAGE_INFO[id.slice(5)] : INFO[+id]?.[1];
+    if (!en) return;
+    const sec = (h, t) => t ? `<div class="sec"><b>${h}</b>${t}</div>` : '';
+    pop.innerHTML = `<h4>${esc(en.title)}</h4>${sec('What it means', esc(en.what))}${sec('Based on', esc(en.basis))}${sec('How to read it', esc(en.read))}`;
+    pop.hidden = false;
+    const r = btn.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight;
+    let left = Math.min(Math.max(8, r.right - w), innerWidth - w - 8), top = r.bottom + 6;
+    if (top + h > innerHeight - 8) top = Math.max(8, r.top - h - 6);
+    pop.style.left = left + 'px'; pop.style.top = top + 'px';
+  }
+  const hideInfo = () => { pop.hidden = true; pinned = null; };
+  document.addEventListener('mouseover', ev => { const b = ev.target.closest('.info-btn'); if (b && !pinned) showInfo(b); });
+  document.addEventListener('mouseout', ev => { const b = ev.target.closest('.info-btn'); if (b && !pinned && !b.contains(ev.relatedTarget)) pop.hidden = true; });
+  document.addEventListener('focusin', ev => { const b = ev.target.closest('.info-btn'); if (b) showInfo(b); });
+  document.addEventListener('click', ev => {
+    const b = ev.target.closest('.info-btn');
+    if (b) { ev.preventDefault(); ev.stopPropagation(); if (pinned === b) hideInfo(); else { pinned = b; showInfo(b); } return; }
+    if (!pop.contains(ev.target)) hideInfo();
+  }, true);
+  document.addEventListener('keydown', ev => { if (ev.key === 'Escape') hideInfo(); if ((ev.key === 'Enter' || ev.key === ' ') && ev.target.classList?.contains('nav-info')) { ev.preventDefault(); showInfo(ev.target); pinned = ev.target; } });
+  window.addEventListener('scroll', () => { if (!pop.hidden) hideInfo(); }, true);
+  document.querySelectorAll('.sidebar a[data-page]').forEach(a => a.insertAdjacentHTML('beforeend', `<span class="info-btn nav-info" role="button" tabindex="0" aria-label="About this page" data-info="page:${a.dataset.page}">${ic('info', 13)}</span>`));
+
+  /* ---------- data centre picker (Sites, AI Insights) ---------- */
+  const sitePicker = () => `<div class="site-picker" role="group" aria-label="Choose data centre"><span class="sp-label">${ic('sites', 14)} Data centre</span>${SITES.map(s => `<button type="button" class="sp ${s === state.site ? 'on' : ''}" data-pick-site="${esc(s)}" aria-pressed="${s === state.site}"><b>${esc(s)}</b><span>${esc(SITE_INFO[s]?.location || '')}</span></button>`).join('')}</div>`;
 
   /* ---------- router & events ---------- */
   function render() {
@@ -680,7 +854,9 @@
     const page = (location.hash || '#overview').slice(1);
     const key = pages[page] ? page : 'overview';
     document.querySelectorAll('[data-page]').forEach(a => a.classList.toggle('active', a.dataset.page === key));
+    currentPage = key; hideInfo();
     pages[key]();
+    decorateInfo(key);
   }
   app.addEventListener('change', e => {
     const t = e.target;
@@ -688,10 +864,11 @@
     if (t.dataset.check) { const d = store.get('actions', {}); d[t.dataset.check] = t.checked; store.set('actions', d); render(); }
   });
   app.addEventListener('click', e => {
-    const t = e.target.closest('[data-tab],[data-go],[data-action],[data-download],[data-bench]');
+    const t = e.target.closest('[data-tab],[data-go],[data-action],[data-download],[data-bench],[data-pick-site]');
     if (!t) return;
     if (t.dataset.tab) { const [k, v] = t.dataset.tab.split(':'); state[k] = v; render(); }
     if (t.dataset.go) { if (t.dataset.site) state.site = t.dataset.site; if (location.hash === '#' + t.dataset.go) render(); else location.hash = t.dataset.go; window.scrollTo(0, 0); }
+    if (t.dataset.pickSite) { state.site = t.dataset.pickSite; render(); return; }
     if (t.dataset.bench) { toggleBench(t.dataset.bench); return; }
     if (t.dataset.download) downloadReport(allReports()[+t.dataset.download]);
     const a = t.dataset.action;

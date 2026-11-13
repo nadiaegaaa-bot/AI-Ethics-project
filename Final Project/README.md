@@ -37,6 +37,14 @@ A preview shows how many site-months are new or updated, any new sites, the cool
 
 Uploads are stored only in your browser. Each one can be removed, or you can **Restore original data**. PDF files can't be read automatically, so upload the numbers as Excel or CSV.
 
+## Help, labels and navigation
+- **Info buttons (ⓘ):** every card and every menu item has an ⓘ. Hover over it or click it to see what the number means, what it is based on and how to read the chart. The ⓘ next to each page title explains the page.
+- **Executive summary:** the Overview starts with "About this platform", a short introduction and the key numbers for the selected period.
+- **Confidential:** every page title has a Confidential badge, and the printed reports are marked confidential.
+- **Data centre picker:** on Sites and AI Insights, choose the data centre with the buttons under the title.
+- **Verne:** Verne Iceland and Verne Finland are combined into one competitor (simple average 1.295, because per-site energy is not published).
+- **Settings → Contact & help:** a placeholder; this will be developed later.
+
 ## Pages
 - **Overview:** PUE, total energy, cooling energy and estimated cost, with change vs. the previous period. Energy by site. AI insights from the workbook's REVIEW flags.
 - **Sites:** four tabs. Performance shows the PUE trend vs. the 1.20 design target and an energy donut. Energy breakdown shows monthly bars. Cost & prices shows cost and the price index. AI analysis shows the cooling residual vs. the 12% threshold.
