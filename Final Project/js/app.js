@@ -985,9 +985,11 @@
   // UI
   document.body.insertAdjacentHTML('beforeend', `
     <button class="cp-fab" id="cp-fab" aria-label="Ask Copilot" aria-keyshortcuts="${isMac ? 'Meta+J' : 'Control+J'}">${ic('bot', 20)}<span>Ask Copilot</span><kbd>${isMac ? '⌘ J' : 'Ctrl J'}</kbd></button>
-    <aside class="cp-panel" id="cp-panel" role="dialog" aria-label="AI Copilot" hidden>
+    <div class="cp-backdrop" id="cp-backdrop" hidden></div>
+    <aside class="cp-panel" id="cp-panel" role="dialog" aria-modal="true" aria-label="AI Copilot" hidden>
+      <button class="cp-grab" id="cp-grab" aria-label="Close Copilot"><span></span></button>
       <header class="cp-head"><span class="cp-hic">${ic('bot', 18)}</span><div><b>AI Copilot</b><div class="small">Decision support · workbook data · no external AI</div></div>
-        <button class="cp-hbtn cp-exp" id="cp-expand" aria-label="Expand">${ic('expand', 17)}</button><button class="cp-hbtn" id="cp-close" aria-label="Close">${ic('x', 18)}</button></header>
+        <button class="cp-hbtn cp-exp" id="cp-expand" aria-label="Expand">${ic('expand', 17)}</button><button class="cp-hbtn cp-x" id="cp-close" aria-label="Close Copilot">${ic('x', 20)}</button></header>
       <div class="cp-log" id="cp-log">
         <div class="cp-msg bot"><span class="cp-av">${ic('bot', 16)}</span><div class="cp-body"><div class="cp-title">Explore what the energy, efficiency, anomaly, capacity and peer data shows.</div>
           <p class="cp-intro">Answers are calculated from the workbook with the same engine as the dashboards and separate observations from possible explanations. They support decisions rather than make them. No external AI service is used.</p></div></div>
@@ -997,8 +999,14 @@
     </aside>`);
   const fab = document.getElementById('cp-fab'), panel = document.getElementById('cp-panel'), log = document.getElementById('cp-log'), qin = document.getElementById('cp-q');
   const cpNav = document.querySelector('.sidebar a[data-copilot]');
-  const openCp = () => { panel.hidden = false; document.body.classList.add('cp-open'); cpNav?.classList.add('active'); document.getElementById('cp-ctx').textContent = ctxLabel(); setTimeout(() => qin.focus(), 30); };
-  const closeCp = () => { panel.hidden = true; document.body.classList.remove('cp-open'); cpNav?.classList.remove('active'); fab.focus(); };
+  const backdrop = document.getElementById('cp-backdrop');
+  const phone = () => matchMedia('(max-width: 640px)').matches;
+  const openCp = () => { qin.placeholder = phone() ? 'Ask about energy, cooling, cost…' : 'Ask a question, e.g. Why did cooling energy increase?'; panel.hidden = false; backdrop.hidden = !phone(); document.body.classList.add('cp-open'); cpNav?.classList.add('active'); if (phone() && !history.state?.cp) history.pushState({ ...(history.state || {}), cp: 1 }, ''); document.getElementById('cp-ctx').textContent = ctxLabel(); if (!phone()) setTimeout(() => qin.focus(), 30); };
+  const closeCp = (fromBack) => { if (panel.hidden) return; panel.hidden = true; backdrop.hidden = true; document.body.classList.remove('cp-open'); cpNav?.classList.remove('active'); if (!fromBack && history.state?.cp) history.back(); if (!phone()) fab.focus(); };
+  // Phone: the back button / back swipe closes the chat; tapping outside or the grab handle closes it too.
+  window.addEventListener('popstate', () => closeCp(true));
+  backdrop.addEventListener('click', () => closeCp());
+  document.getElementById('cp-grab').addEventListener('click', () => closeCp());
   cpNav?.addEventListener('click', e => { if (e.target.closest('.info-btn')) return; e.preventDefault(); panel.hidden ? openCp() : closeCp(); });
   function ask(q) {
     q = String(q || '').trim(); if (!q) return;
@@ -1014,13 +1022,13 @@
     }, 450);
   }
   fab.addEventListener('click', () => (panel.hidden ? openCp() : closeCp()));
-  document.getElementById('cp-close').addEventListener('click', closeCp);
+  document.getElementById('cp-close').addEventListener('click', () => closeCp());
   document.getElementById('cp-expand').addEventListener('click', e => { const on = panel.classList.toggle('wide'); e.currentTarget.innerHTML = ic(on ? 'shrink' : 'expand', 17); e.currentTarget.setAttribute('aria-label', on ? 'Collapse' : 'Expand'); });
   document.getElementById('cp-form').addEventListener('submit', e => { e.preventDefault(); ask(qin.value); });
   panel.addEventListener('click', e => {
     const s = e.target.closest('[data-cp-q]'); if (s) { ask(s.dataset.cpQ); return; }
     const g = e.target.closest('[data-cp-go]');
-    if (g) { if (g.dataset.cpSite) state.site = g.dataset.cpSite; if (matchMedia('(max-width: 640px)').matches) closeCp(); if (location.hash === '#' + g.dataset.cpGo) render(); else location.hash = g.dataset.cpGo; document.getElementById('cp-ctx').textContent = ctxLabel(); }
+    if (g) { if (g.dataset.cpSite) state.site = g.dataset.cpSite; if (phone()) { closeCp(true); if (history.state?.cp) history.replaceState({}, ''); } if (location.hash === '#' + g.dataset.cpGo) render(); else location.hash = g.dataset.cpGo; document.getElementById('cp-ctx').textContent = ctxLabel(); }
   });
   document.addEventListener('keydown', e => {
     if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'j') { e.preventDefault(); panel.hidden ? openCp() : closeCp(); }
