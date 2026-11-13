@@ -803,6 +803,8 @@
     [/^data\|data:guide/, e('Workbook guide', 'The workbook\'s own instructions and limitations.', 'Workbook sheet "START HERE".', '')],
     [/^data\|data:check/, e('Import check', 'Proof that the dashboard reads the workbook correctly.', 'The dashboard recalculates the workbook\'s 2025 summary from the monthly rows.', 'A ✓ means the dashboard value matches the workbook.')],
     // Settings
+    [/^copilot\|chat/, e('Copilot chat', 'Ask questions about the data in your own words, or ask how to use the dashboard.', 'Answers are calculated in the browser from the loaded data with the dashboard\'s formulas. Nothing is sent to an external AI service.', '"Simple" gives a short plain-language answer with the key terms explained. "Detailed" shows all numbers, possible explanations and next steps. Name a site or a month in the question to change the focus.')],
+    [/^copilot\|(ask|what you can ask)/, e('What you can ask', 'Example questions grouped by topic, from basic explanations to specific analyses.', 'Click a question to ask it.', 'You can also type your own question, e.g. with another site or month.')],
     [/^settings\|data file/, e('Data file', 'Which data is loaded and what is stored in this browser.', '', '')],
     [/^settings\|contact/, e('Contact & help', 'Where to get help with the platform.', '', 'This will be developed later.')],
   ];
@@ -858,27 +860,171 @@
   ICONS.x = '<path d="M18 6L6 18M6 6l12 12"/>';
   const isMac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
   const SUGGESTIONS = ['Why did cooling energy increase?', 'Which site has the highest optimisation potential?', 'What capacity risks exist?', 'How do we compare with Nordic peers?'];
-  const MORE = ['What drives our energy cost?', 'How efficient is N01?', 'What can you help with?'];
+  const MORE = ['What is PUE?', 'Tell me about DK01', 'Where can I compare competitors?', 'What can you help with?'];
+  const PHONE_MORE = ['What is PUE?', 'How do I change the period?', 'Tell me about N01', 'What can you help with?'];
   const SITE_WORDS = { oslo: 'OS-IX', kristiansand: 'N01', vennesla: 'N01', esbjerg: 'DK01' };
-  const ctxSite = () => (['sites', 'insights'].includes(currentPage) ? state.site : null);
+  const ctxSite = () => (currentPage === 'copilot' ? (state.cpSite || null) : ['sites', 'insights'].includes(currentPage) ? state.site : null);
   const ctxLabel = () => `Context: ${ctxSite() ? `${ctxSite()} (${SITE_INFO[ctxSite()]?.location || ''})` : 'All sites'} · ${PERIODS[state.period] || ''}`;
 
   function scope(q) {
     const t = q.toLowerCase();
     let site = SITES.find(s => new RegExp(`\\b${s.toLowerCase().replace('-', '[- ]?')}\\b`).test(t)) || Object.entries(SITE_WORDS).find(([w]) => t.includes(w))?.[1] || null;
-    if (!site && /\b(all|every|each|which) site|portfolio|bulk\b/.test(t)) site = null; else if (!site) site = ctxSite();
+    const explicitSite = !!site;
+    if (!site && /\b(all|every|each|which) (site|data ?cent)|portfolio|bulk\b/.test(t)) site = null; else if (!site) site = ctxSite();
     let months = periodMonths().cur, plabel = PERIODS[state.period];
+    const MN = '(january|jan|february|feb|march|mar|april|apr|may|june|jun|july|jul|august|aug|september|sept|sep|october|oct|november|nov|december|dec)';
+    const mm = t.match(new RegExp(`\\b${MN}\\.?\\s+(\\d{4})\\b`)) || t.match(new RegExp(`\\b(?:in|for|during|of|from)\\s+${MN}\\b(?:\\s+(\\d{4}))?`));
+    if (mm) {
+      const mi = String(['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'].indexOf(mm[1].slice(0, 3)) + 1).padStart(2, '0');
+      const yr = mm[2] || [...MONTHS].reverse().find(m => m.endsWith('-' + mi))?.slice(0, 4) || LAST.slice(0, 4);
+      return { site, sites: site ? [site] : SITES, months: [`${yr}-${mi}`], plabel: mLong(`${yr}-${mi}`), explicitSite, explicitMonth: true };
+    }
     if (/\b2025\b/.test(t)) { months = MONTHS.filter(m => m.startsWith('2025')); plabel = 'Full year 2025'; }
     else if (/\b2026\b/.test(t)) { months = MONTHS.filter(m => m.startsWith('2026')); plabel = 'Year 2026'; }
     else if (/last month|latest month|this month/.test(t)) { months = [LAST]; plabel = mLong(LAST); }
     else if (/all (data|months|time)|ever|history/.test(t)) { months = MONTHS.slice(); plabel = 'All data'; }
-    return { site, sites: site ? [site] : SITES, months, plabel };
+    return { site, sites: site ? [site] : SITES, months, plabel, explicitSite };
   }
   const avgOf = (rs, k) => rs.length ? rs.reduce((t, r) => t + r[k], 0) / rs.length : 0;
   const prior3 = r => rows(MONTHS.slice(Math.max(0, MONTHS.indexOf(r.month) - 3), MONTHS.indexOf(r.month)), [r.site]);
   const answer = (o) => o; // {title, obs:[], expl:[], next:[], links:[[label,page,site]], basis}
 
-  const INTENTS = [
+  /* --- Copilot: glossary (plain language), navigation help, and specific (expert) lookups --- */
+  const isPhoneNow = () => matchMedia('(max-width: 640px)').matches;
+  const GLOSS = [
+    [/\bpue\b|power usage/, 'PUE (Power Usage Effectiveness)', 'Total energy used by the data centre ÷ energy used by the IT equipment (the customers\' servers). 1.00 would mean no overhead. 1.20 means that for every 1 kWh the servers use, another 0.20 kWh goes to cooling, power losses and lighting. Lower is better.'],
+    [/\bit (energy|load|power)\b|\bit equipment/, 'IT energy / IT load', 'The electricity used by customers\' servers, storage and network. This is the "useful" energy a data centre exists to deliver. IT load is the same thing measured as power (MW) at a point in time.'],
+    [/\bcooling\b/, 'Cooling energy', 'Electricity for chillers, fans and pumps that remove the heat produced by the servers. It is usually the largest overhead and rises in warm weather.'],
+    [/\bmwh\b|\bgwh\b|\bkwh\b|\bmw\b|megawatt/, 'MW, MWh and GWh', 'MW (megawatt) is power: how much is drawn at a moment. MWh (megawatt-hour) is energy: power over time. 1 MW running for one hour = 1 MWh. 1 GWh = 1,000 MWh. A typical Norwegian home uses about 16 MWh a year.'],
+    [/price zone|\bno1\b|\bno2\b|\bdk1\b|bidding zone/, 'Price zone', 'The Nordic electricity market is split into zones with their own prices: NO1 (Oslo area, OS-IX), NO2 (southern Norway, N01) and DK1 (western Denmark, DK01). The same consumption can cost different amounts in different zones.'],
+    [/headroom/, 'Headroom', 'How much more IT power a site can supply before it is full: installed capacity minus current IT load. Little headroom means expansion has to be planned.'],
+    [/\bcapacity\b/, 'Capacity', 'The maximum IT power a site is built to deliver to customers, in MW. N01\'s reported capacity is 59 MW. Capacity is not the same as what is actually used.'],
+    [/residual|expected cooling/, 'Expected cooling and residual', 'Expected cooling is what a simple formula predicts from IT energy and outdoor temperature. The residual is how far actual cooling is above or below that, in percent. Above +12% the month is flagged for review.'],
+    [/synthetic/, 'Synthetic data', 'Simulated numbers created for this prototype because real site measurements need Bulk\'s permission. They behave realistically but are not real Bulk readings.'],
+    [/design target|target pue/, 'Design target', 'Bulk aims for a PUE of 1.20 or lower in new facilities (Annual Report 2025). It is a goal, not a measured result.'],
+    [/spot|market price|price index/, 'Market price index', 'The monthly electricity price in each price zone, in NOK per MWh. In this prototype it is synthetic. Bulk\'s real cost also includes grid tariffs, taxes and hedging.'],
+    [/benchmark|peer/, 'Benchmark', 'A comparison with other operators. Here it uses the PUE figures competitors publish in their sustainability reports.'],
+    [/coloc|colocation/, 'Colocation', 'A data centre that rents space, power and cooling to customers who bring their own servers. Bulk is a colocation operator.'],
+    [/\bhpc\b|high.performance/, 'HPC', 'High-performance computing: very power-dense computing, for example for AI training or research, which needs strong cooling.'],
+  ];
+  const termsIn = text => GLOSS.filter(([re]) => re.test(String(text).toLowerCase())).slice(0, 3);
+  const NAV = [
+    { re: /upload|import (a |new )?(file|data|report)|new data|update (the )?(numbers|data)/, page: 'reports', desk: 'Go to <b>Reports</b> (under Reporting) and use the box at the top: drop an Excel (.xlsx) or CSV file, check the preview, then click <b>Update dashboard</b>. You can remove uploads again on the same page.', phone: 'Uploading data is only available in the computer dashboard (Reports page). Open the same link on a computer.' },
+    { re: /download|pdf|export|print/, page: 'reports', desk: 'Go to <b>Reports</b> and click <b>Download</b> next to a report. PDF reports open in a print view: choose "Save as PDF". Use <b>New report</b> to create another one.', phone: 'Reports can be downloaded in the computer dashboard (Reports page).' },
+    { re: /compar(e|ing) (with |to )?(a |the )?(competitor|peer)|select (a )?competitor|side.by.side/, page: 'benchmarking', desk: 'Go to <b>Benchmarking</b> (under Planning). Click a bar, a row with <b>+</b>, or a name in the chart legend to add up to 4 competitors to the side-by-side comparison below the chart.', phone: 'Competitor comparison is in the computer dashboard (Benchmarking). On the phone you can ask me, for example "How do we compare with Nordic peers?"' },
+    { re: /period|date range|time (range|period)|year to date|last 12|which months? (are|is) shown/, page: null, desk: 'Use the period menu in the top-right corner of most pages (e.g. "Year to date 2026", "Last 12 months", "Full year 2025"). All numbers on the page recalculate.', phone: 'Tap the period menu under the page title (e.g. "Year to date 2026") and choose another period.' },
+    { re: /info|ⓘ|explain(ed)? (the )?(card|number)|what does (this|the) (card|number|button)/, page: null, desk: 'Every card, page title and menu item has an <b>ⓘ</b> button. Hover over it or click it to see what the number means, what it is based on and how to read the chart.', phone: 'Tap the <b>ⓘ</b> in the corner of a card to see what it means. Tap anywhere else to close it.' },
+    { re: /install|home screen|add to dock|as an app|offline/, page: null, desk: 'In Chrome or Edge, click the install icon at the right end of the address bar. In Safari on a Mac, choose File → Add to Dock. Once installed it also works offline.', phone: 'iPhone: in Safari tap <b>Share → Add to Home Screen</b>. Android: in Chrome tap <b>⋮ → Install app</b>. It then opens like an app and works offline.' },
+    { re: /(change|switch|choose|select|pick) (the )?(site|data ?cent(re|er))|another site|other site/, page: 'sites', desk: 'Open <b>Sites</b> and click a data centre button (OS-IX, N01, DK01) under the page title. The same buttons are on AI Insights.', phone: 'Tap <b>Sites</b> in the bottom bar, then tap a data centre button under the title.' },
+    { re: /tick|checklist|suggested action|mark (as )?done/, page: 'insights', desk: 'On <b>AI Insights</b>, tick the suggested actions next to the chart. Ticks are saved in this browser.', phone: 'Tap <b>AI Insights</b> in the bottom bar and scroll to Suggested actions.' },
+    { re: /phone|mobile|computer|desktop|difference between/, page: null, desk: 'The computer dashboard has all pages. The phone app shows the most important ones: Overview, Sites, Energy & Cost and AI Insights, with the Copilot on the round button.', phone: 'The phone app has Overview, Sites, Energy & Cost and AI Insights in the bottom bar, and the Copilot on the round button. Capacity, Benchmarking, Reports and Data & Methods are on the computer dashboard.' },
+  ];
+  const PAGES_NAV = [
+    { re: /overview|summary|home|start page|main page|kpi/, page: 'overview', name: 'Overview', what: 'the summary of all sites: PUE, total energy, cooling, cost and the latest AI flags' },
+    { re: /\bsites?\b|data ?cent(re|er)|n01|os.?ix|dk01|oslo|esbjerg|kristiansand|vennesla|pue trend/, page: 'sites', name: 'Sites', what: 'one data centre at a time: PUE trend, energy breakdown, cost and AI analysis' },
+    { re: /energy|cost|price|spend|bill/, page: 'energy', name: 'Energy & Cost', what: 'monthly energy and estimated cost for all sites, and cost by site' },
+    { re: /ai insight|anomal|flag|alert|cooling/, page: 'insights', name: 'AI Insights', what: 'cooling flags, actual vs. expected cooling, suggested actions and estimated impact' },
+    { re: /capacit|headroom|load/, page: 'capacity', name: 'Capacity', what: 'installed capacity, IT load and headroom per site', deskOnly: true },
+    { re: /benchmark|compet|peer|nordic/, page: 'benchmarking', name: 'Benchmarking', what: 'competitors\' published PUE, side-by-side comparison and electricity prices', deskOnly: true },
+    { re: /report/, page: 'reports', name: 'Reports', what: 'downloadable reports and data upload', deskOnly: true },
+    { re: /source|method|dictionary|definition|import check|verified|data ?(&|and) ?methods/, page: 'data', name: 'Data & Methods', what: 'verified facts, the source register, the data dictionary and the import check', deskOnly: true },
+    { re: /setting|contact|help ?line|support/, page: 'settings', name: 'Settings', what: 'loaded data, saved preferences and contact & help', deskOnly: true },
+    { re: /copilot|chat/, page: 'copilot', name: 'Copilot', what: 'this assistant' },
+  ];
+  const deskPath = { overview: 'Monitor → Overview', sites: 'Monitor → Sites', energy: 'Monitor → Energy & Cost', insights: 'Intelligence → AI Insights', copilot: 'Intelligence → Copilot', capacity: 'Planning → Capacity', benchmarking: 'Planning → Benchmarking', reports: 'Reporting → Reports', data: 'Administration → Data & Methods', settings: 'Settings (bottom of the menu)' };
+  const NAV_TRIGGER = /\b(where (can|do|should|would) i|where (is|are|do i find)|how (do|can|should) i (find|get to|open|see|use|change|switch|upload|download|install|compare|select|choose|pick|export|print|tick)|how to (find|open|use|change|upload|download|install|compare)|find the|navigate|go to|take me|open the|which (page|tab|menu)|in the menu|is there a (page|button)|install|upload|download|use the (app|dashboard)|on (my|the) phone)\b/;
+  function navAnswer(q) {
+    const t = q.toLowerCase(), ph = isPhoneNow();
+    const f = NAV.find(n => n.re.test(t));
+    if (f) {
+      const pg = f.page && PAGES_NAV.find(p => p.page === f.page);
+      const ok = !(ph && pg?.deskOnly);
+      return answer({ plain: true, title: ph ? 'Using the app' : 'Using the dashboard', short: ph ? f.phone : f.desk, links: f.page && ok && f.page !== currentPage ? [[`Open ${pg.name}`, f.page]] : null, basis: ph ? 'Phone app.' : 'Computer dashboard.' });
+    }
+    const p = PAGES_NAV.find(x => x.re.test(t));
+    if (p) {
+      if (ph && p.deskOnly) return answer({ plain: true, title: `${p.name} is on the computer dashboard`, short: `${p.name} shows ${p.what}. The phone app keeps only the most important pages, so open the same link on a computer to see it. On the phone you can ask me about it instead.`, basis: 'Phone app.' });
+      return answer({ plain: true, title: `Where to find it: ${p.name}`, short: ph ? `Tap <b>${p.name}</b> in the bottom bar${p.page === 'copilot' ? ' (or the round Copilot button)' : ''}. It shows ${p.what}.` : `Click <b>${deskPath[p.page]}</b> in the left menu. It shows ${p.what}.`, links: p.page !== currentPage && p.page !== 'copilot' ? [[`Open ${p.name}`, p.page]] : null, basis: ph ? 'Phone app.' : 'Computer dashboard.' });
+    }
+    return answer({ plain: true, title: ph ? 'How the app is organised' : 'How the dashboard is organised', short: ph ? 'The bottom bar has <b>Overview</b> (summary), <b>Sites</b> (one data centre), <b>Energy & Cost</b> and <b>AI Insights</b> (cooling alerts). The round button opens me. Tap ⓘ on any card for an explanation.' : 'The left menu is grouped: <b>Monitor</b> (Overview, Sites, Energy & Cost), <b>Intelligence</b> (AI Insights, Copilot), <b>Planning</b> (Capacity, Benchmarking), <b>Reporting</b> (Reports) and <b>Administration</b> (Data & Methods). Hover over ⓘ on any card for an explanation.', basis: ph ? 'Phone app.' : 'Computer dashboard.' });
+  }
+  const MONTH_RE = /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?(\s+(\d{4}))?\b/;
+  const METRICS = [
+    [/\bpue\b|efficien/, 'PUE', r => r.pue.toFixed(3)],
+    [/expected/, 'Expected cooling', r => `${r.expectedCoolingMWh.toFixed(0)} MWh`],
+    [/residual|deviation/, 'Residual', r => pctS(r.residualPct)],
+    [/cool/, 'Cooling', r => `${r.coolingMWh.toFixed(0)} MWh (expected ${r.expectedCoolingMWh.toFixed(0)}, ${pctS(r.residualPct, 0)}${r.alert === 'REVIEW' ? ', flagged' : ''})`],
+    [/it (load|power)/, 'IT load', r => `${r.itLoadMW.toFixed(1)} MW`],
+    [/it energy/, 'IT energy', r => `${r.itMWh.toFixed(0)} MWh`],
+    [/total|energy|consum/, 'Total energy', r => `${r.totalMWh.toFixed(0)} MWh`],
+    [/cost|spend/, 'Estimated cost', r => `NOK ${(r.costNOK / 1e6).toFixed(2)}M`],
+    [/price/, 'Market price', r => `${r.priceNOKMWh.toFixed(0)} NOK/MWh`],
+    [/temp|weather/, 'Outdoor temperature', r => `${r.tempC.toFixed(1)} °C`],
+  ];
+  const NEW_INTENTS = [
+    { re: /\b(how|ways?|what can (we|i) do|what should (we|i) do)\b.*\b(reduce|lower|improve|cut|save|decrease|bring down|fix)\b/, fn: s => {
+      const t0 = s.site ? [s.site] : SITES, list = t0.map(x => ({ x, a: agg(rows(s.months, [x])), fl: flagged(s.months, [x]) })).filter(o => o.a.it).sort((p, q) => q.a.pue - p.a.pue);
+      const worst = list[0], fl = flagged(s.months, s.sites);
+      const gap = worst ? Math.max(0, worst.a.pue - PUE_TARGET) * worst.a.it : 0;
+      return answer({ terms: ['pue', 'cooling'], short: `The biggest lever is cooling, which is most of the overhead. ${fl.length ? `Start with the ${fl.length} flagged month(s)${s.site ? '' : ` at ${[...new Set(fl.map(r => r.site))].join(', ')}`}, where cooling was clearly higher than expected.` : 'No months are flagged right now, so focus on the summer months when PUE rises.'} ${worst && gap > 0 ? `Bringing ${worst.x} down to the 1.20 target would save about ${(gap / 1000).toFixed(1)} GWh (≈ ${nokM(gap * worst.a.price)}) in ${s.plabel}.` : ''}`.replace('≈', 'about'), title: `How to reduce energy use${s.site ? ` at ${s.site}` : ''}`,
+        obs: list.map(o => `<b>${o.x}</b>: PUE ${o.a.pue.toFixed(3)}, cooling ${(o.a.coolShare * 100).toFixed(1)}% of energy${o.fl.length ? `, ${o.fl.length} cooling flag(s)` : ''}.`),
+        expl: [], headings: { next: 'Common measures (to be assessed by site engineers)' },
+        next: ['Investigate flagged months first: setpoints, pumps, fans, condenser fouling, recent maintenance.', 'Raise supply-air / chilled-water setpoints within equipment limits; use more free cooling with cold Nordic outdoor air.', 'Improve airflow: hot/cold-aisle containment, blanking panels, seal cable openings.', 'Use variable-speed fans and pumps so cooling follows the IT load.', 'Reuse waste heat (e.g. district heating). It does not lower PUE but improves overall energy use.', 'Shift flexible load or maintenance to cheaper months to reduce cost (not energy).'],
+        links: [['Open AI Insights', 'insights', (fl[0] || {}).site || worst?.x]], basis: 'Numbers from the loaded data; measures are general industry practice, not derived from the data.' });
+    } },
+    { re: NAV_TRIGGER, skip: /reduce|lower|improve|save|fix|cut|decrease/, fn: (s, q) => navAnswer(q) },
+    { re: /^(what('s| is| are| does| do)|explain|define|meaning|what do you mean|i don.?t understand|tell me what)\b/, test: (q, s) => termsIn(q).length && !s.explicitSite && !s.explicitMonth, fn: (s, q) => {
+      const ts = termsIn(q);
+      return answer({ plain: true, title: ts.length > 1 ? 'Explained simply' : ts[0][1], short: ts.map(([, n, d]) => ts.length > 1 ? `<b>${n}:</b> ${d}` : d).join('<br><br>'), links: /pue/.test(q.toLowerCase()) ? [['See PUE on the Overview', 'overview']] : null, basis: 'Plain-language definition.' });
+    } },
+    { re: /(which|what|list|show).*(months?).*(flag|review|alert)|flagged months|all (the )?flags/, fn: s => {
+      const fl = flagged(MONTHS, s.sites);
+      return answer({ short: fl.length ? `${fl.length} month(s) were flagged because cooling was more than ${(THRESH * 100).toFixed(0)}% above expected: ${fl.map(r => `${r.site} ${mShort(r.month)}`).join(', ')}.` : 'No months were flagged.', title: `Months flagged for cooling review${s.site ? ` at ${s.site}` : ''}`, terms: ['residual'],
+        obs: fl.map(r => `<b>${r.site}, ${mLong(r.month)}:</b> ${r.coolingMWh.toFixed(0)} vs. ${r.expectedCoolingMWh.toFixed(0)} MWh expected (${pctS(r.residualPct)}), ${r.tempC.toFixed(1)} °C, IT load ${r.itLoadMW.toFixed(1)} MW.`),
+        expl: [], next: fl.length ? ['Ask "Why did cooling energy increase?" for possible causes.'] : [], links: fl.length ? [['Open AI Insights', 'insights', fl[0].site]] : null, basis: 'All months in the data, rule: residual > threshold.' });
+    } },
+    { re: /how (is|are|do you|does it|was)\b.*(calculat|comput|estimat|measur|work|defin)|formula|methodolog|which method|how .*model work/, fn: (s, q) => {
+      const t = q.toLowerCase(), parts = [];
+      if (/cool|expect|residual|flag|anomal|model/.test(t) || !/pue|cost|price/.test(t)) parts.push(['Expected cooling', `IT energy (MWh) × (0.115 + 0.0055 × max(outdoor °C − 8, 0) + site adjustment). Residual = (actual − expected) ÷ expected. A month is flagged when the residual is above +${(THRESH * 100).toFixed(0)}% (workbook M05/M06). It is a transparent heuristic, not a trained machine-learning model.`]);
+      if (/pue|efficien/.test(t)) parts.push(['PUE', 'Total facility MWh ÷ IT MWh. For a period, energies are summed first (energy-weighted), not monthly PUEs averaged (workbook M03).']);
+      if (/cost|price/.test(t)) parts.push(['Estimated cost', 'Total facility MWh × synthetic monthly market price (NOK/MWh) for the site\'s price zone (M04). Excludes grid tariffs, taxes, hedging and pass-through.']);
+      if (/capacit|headroom/.test(t)) parts.push(['Capacity and headroom', 'Utilisation = average IT load ÷ reported IT capacity (N01: 59 MW). Headroom = capacity − load. Forecasts use a straight-line trend of the last 12 months.']);
+      return answer({ short: parts.map(([n, d]) => `<b>${n}:</b> ${d}`).join('<br><br>'), plain: true, title: 'How it is calculated', basis: 'Workbook sheet "Sources & Methods". See also Data & Methods.', links: isPhoneNow() ? null : [['Open Data & Methods', 'data']] });
+    } },
+    { re: /reach(es)?\s+(\d{2,3})\s*%|(\d{2,3})\s*%\s*(of\s*)?(its\s*)?capacity|when will .*(full|run out)/, fn: (s, q) => {
+      const m = q.match(/(\d{2,3})\s*%/), pct = m ? Math.min(100, +m[1]) : 100, cap = N01_CAPACITY?.value, n = rows(MONTHS, ['N01']), last = n.at(-1);
+      if (!cap || !last) return answer({ title: 'No capacity data', obs: ['N01 capacity is not available.'], expl: [], next: [] });
+      const y = n.slice(-12).map(r => r.itLoadMW), mx = (y.length - 1) / 2, my = y.reduce((t, v) => t + v, 0) / y.length;
+      const slope = y.reduce((t, v, i) => t + (i - mx) * (v - my), 0) / y.reduce((t, _, i) => t + (i - mx) ** 2, 0);
+      const target = cap * pct / 100, now = last.itLoadMW / cap * 100, mo = slope > 0 ? (target - last.itLoadMW) / slope : Infinity;
+      const when = mo <= 0 ? 'already reached' : isFinite(mo) ? (() => { const d = new Date(+LAST.slice(0, 4), +LAST.slice(5) - 1 + Math.round(mo)); return `around ${MON[d.getMonth()]} ${d.getFullYear()} (in about ${Math.round(mo)} months)`; })() : 'not at the current trend (load is not growing)';
+      return answer({ short: `N01 is at ${now.toFixed(0)}% of its ${cap} MW capacity. If IT load keeps growing as in the last year, it reaches ${pct}% ${when}.`, title: `When N01 reaches ${pct}% of capacity`, terms: ['capacity', 'it load', 'headroom'],
+        obs: [`Latest IT load: ${last.itLoadMW.toFixed(1)} MW in ${mLong(LAST)} (${now.toFixed(1)}% of ${cap} MW).`, `${pct}% of capacity = ${target.toFixed(1)} MW.`, `Trend over the last 12 months: ${(slope * 12).toFixed(1)} MW per year (${slope.toFixed(2)} MW per month).`, `Result: ${when}.`],
+        expl: ['A straight-line trend on synthetic load. New customer contracts arrive in steps, so the real date can be earlier or later.'], next: ['Treat this as a planning signal and check it against the sales pipeline.'], links: isPhoneNow() ? null : [['Open Capacity', 'capacity']], basis: 'Linear regression of monthly average IT load (last 12 months); capacity from Menon Economics (2025).' });
+    } },
+    { re: /(best|lowest|most efficient|worst|highest|least efficient|rank).*(pue|efficien|site)|(pue|efficien).*(best|worst|lowest|highest|rank)/, fn: s => {
+      const list = SITES.map(x => ({ x, a: agg(rows(s.months, [x])) })).filter(o => o.a.it).sort((p, q2) => p.a.pue - q2.a.pue);
+      if (!list.length) return answer({ title: 'No data', obs: [`No data for ${s.plabel}.`], expl: [], next: [] });
+      return answer({ short: `${list[0].x} has the best (lowest) PUE in ${s.plabel}: ${list[0].a.pue.toFixed(3)}. ${list.at(-1).x} has the highest: ${list.at(-1).a.pue.toFixed(3)}. Lower PUE means less energy lost to cooling and overhead.`, title: `Sites ranked by PUE (${s.plabel})`, terms: ['pue'],
+        obs: list.map((o, i) => `${i + 1}. <b>${o.x}</b> (${esc(SITE_INFO[o.x]?.location || '')}): PUE ${o.a.pue.toFixed(3)}, cooling ${(o.a.coolShare * 100).toFixed(1)}% of energy, ${(o.a.total / 1000).toFixed(1)} GWh.`),
+        expl: ['Differences between sites come from climate, building design, cooling technology and how full the site is (partly empty halls are less efficient).'], next: ['Compare the PUE trend of each site on the Sites page.'], links: [['Open Sites', 'sites', list.at(-1).x]], basis: 'Energy-weighted PUE per site.' });
+    } },
+    { re: /tell me about|about (the )?(site|data ?cent)|profile|describe|summar(y|ise|ize) (of )?(n01|os.?ix|dk01|oslo|esbjerg|kristiansand)/, test: (q, s) => !!s.explicitSite, fn: s => {
+      const x = s.site, a = agg(rows(s.months, [x])), last = rows([LAST], [x])[0], fl = flagged(MONTHS, [x]), cap = x === 'N01' ? N01_CAPACITY?.value : null;
+      return answer({ short: `${x} is Bulk's data centre in ${esc(SITE_INFO[x]?.location || '')} (${esc(zone(x))} price zone). In ${s.plabel} it used ${(a.total / 1000).toFixed(1)} GWh with a PUE of ${a.pue.toFixed(2)}${fl.length ? `, and has ${fl.length} cooling flag(s)` : ', with no cooling flags'}.`, title: `${x} · ${esc(SITE_INFO[x]?.location || '')}`, terms: ['pue', 'price zone'],
+        obs: [`Energy ${(a.total / 1000).toFixed(1)} GWh (IT ${(a.it / 1000).toFixed(1)}, cooling ${(a.cool / 1000).toFixed(1)}, other ${(a.other / 1000).toFixed(1)}) in ${s.plabel}.`, `PUE ${a.pue.toFixed(3)} vs. target ${PUE_TARGET.toFixed(2)}; cooling ${(a.coolShare * 100).toFixed(1)}% of energy.`, `Estimated cost ${nokM(a.cost)}, average ${(a.price / 1000).toFixed(2)} NOK/kWh.`,
+          last ? `IT load ${last.itLoadMW.toFixed(1)} MW in ${mLong(LAST)}${cap ? ` (${(last.itLoadMW / cap * 100).toFixed(0)}% of ${cap} MW)` : '; capacity not verified'}.` : '', fl.length ? `Cooling flags: ${fl.map(r => `${mShort(r.month)} (${pctS(r.residualPct, 0)})`).join(', ')}.` : 'No cooling flags in any month.'].filter(Boolean),
+        expl: [], next: [], links: [['Open site', 'sites', x], ...(fl.length ? [['Open AI Insights', 'insights', x]] : [])], basis: 'Monthly site data (synthetic).' });
+    } },
+    { re: /./, test: (q, s) => s.explicitMonth && METRICS.some(([re]) => re.test(q.toLowerCase())), fn: (s, q) => {
+      const t = q.toLowerCase(), ms = METRICS.filter(([re]) => re.test(t)).slice(0, 3), rs = rows(s.months, s.sites);
+      if (!rs.length) return answer({ title: 'No data for that month', obs: [`There is no data for ${s.plabel}${s.site ? ` at ${s.site}` : ''}. The data covers ${mLong(MONTHS[0])} – ${mLong(LAST)}.`], expl: [], next: [] });
+      return answer({ short: rs.map(r => `${r.site}: ${ms.map(([, n, f]) => `${n === 'PUE' ? n : n.toLowerCase()} ${f(r)}`).join('; ')}`).join('<br>'), title: `${ms.map(m => m[1]).join(', ')} · ${s.plabel}`, terms: ms.map(m => m[1]),
+        obs: rs.map(r => `<b>${r.site}:</b> ${ms.map(([, n, f]) => `${n} ${f(r)}`).join(' · ')}`), expl: [], next: [], links: s.site ? [['Open site', 'sites', s.site]] : null, basis: 'Single month from the monthly data (synthetic).' });
+    } },
+  ];
+
+  const INTENTS = [...NEW_INTENTS,
     { re: /cool|anomal|flag|alert|residual|unusual|spike/, fn: s => {
       let fl = flagged(s.months, s.sites), outside = false;
       if (!fl.length) { fl = flagged(MONTHS, s.sites); outside = fl.length > 0; }
@@ -893,7 +1039,7 @@
         if (p.length && (r.itLoadMW - it0) / it0 > 0.03) expl.add('Higher IT load, or denser racks creating hot spots. The model scales with IT energy but not with rack density.');
       });
       ['Cooling plant performance: setpoint drift, a pump or fan running harder than needed, or condenser/heat-exchanger fouling.', 'A maintenance event or configuration change, for example equipment in bypass or changed control settings.', 'A metering or data error. Check the meter readings before acting.'].forEach(x => expl.add(x));
-      return answer({ title: `Why cooling energy increased${s.site ? ` at ${s.site}` : ''}`, obs, expl: [...expl], next: ['Check cooling setpoints, pumps and condenser for the flagged month(s).', 'Review the maintenance log for the same period.', 'Compare with the other sites in the same month.', 'Validate against permissioned metering before deciding.'],
+      return answer({ terms: ['cooling', 'residual'], short: `${fl.length} month(s) used noticeably more cooling than the model expected. The most recent is ${fl[0].site} in ${mLong(fl[0].month)}: about ${(fl[0].residualPct * 100).toFixed(0)}% more than expected, which IT load and weather do not explain. The data cannot show the cause, so it needs to be checked on site (for example the cooling equipment or a maintenance change).`, title: `Why cooling energy increased${s.site ? ` at ${s.site}` : ''}`, obs, expl: [...expl], next: ['Check cooling setpoints, pumps and condenser for the flagged month(s).', 'Review the maintenance log for the same period.', 'Compare with the other sites in the same month.', 'Validate against permissioned metering before deciding.'],
         links: [['Open AI Insights', 'insights', fl[0].site]], basis: `Cooling residual = (actual − expected) ÷ expected; expected from IT energy and temperature (workbook M05/M06). Flag above +${(THRESH * 100).toFixed(0)}%. The anomalies were injected into synthetic data.` });
     } },
     { re: /optimi|potential|saving|improve|where.*(save|focus)|priorit|efficien.*(gain|opportun)/, fn: s => {
@@ -905,17 +1051,18 @@
       }).filter(Boolean).map(x => ({ ...x, pot: Math.max(x.gap, x.ex) })).sort((x, y) => y.pot - x.pot);
       if (!list.length) return answer({ title: 'No data', obs: [`No data for ${s.plabel}.`], expl: [], next: [] });
       const top = list[0];
-      return answer({ title: `${top.site} has the highest optimisation potential`, obs: list.map((x, i) => `${i + 1}. <b>${x.site}</b>: PUE ${x.a.pue.toFixed(3)} (${x.a.pue > PUE_TARGET ? `${(x.a.pue - PUE_TARGET).toFixed(3)} above` : 'at or below'} the ${PUE_TARGET.toFixed(2)} target) → ${(x.gap / 1000).toFixed(1)} GWh about ${nokM(x.gapNOK)} to reach target.${x.n ? ` Plus ${x.n} cooling flag(s) with ${(x.ex / 1000).toFixed(2)} GWh excess (about ${nokM(x.exNOK)}).` : ''}`),
+      return answer({ terms: ['pue', 'design target'], short: `${top.site} offers the most room for savings: roughly ${(top.pot / 1000).toFixed(1)} GWh, worth about ${nokM(Math.max(top.gapNOK, top.exNOK))} in ${s.plabel}. ${top.ex > top.gap ? 'Most of it is extra cooling in the flagged month(s).' : 'Most of it comes from closing the gap to the 1.20 efficiency target.'}`, title: `${top.site} has the highest optimisation potential`, obs: list.map((x, i) => `${i + 1}. <b>${x.site}</b>: PUE ${x.a.pue.toFixed(3)} (${x.a.pue > PUE_TARGET ? `${(x.a.pue - PUE_TARGET).toFixed(3)} above` : 'at or below'} the ${PUE_TARGET.toFixed(2)} target) → ${(x.gap / 1000).toFixed(1)} GWh about ${nokM(x.gapNOK)} to reach target.${x.n ? ` Plus ${x.n} cooling flag(s) with ${(x.ex / 1000).toFixed(2)} GWh excess (about ${nokM(x.exNOK)}).` : ''}`),
         expl: [top.ex > top.gap ? `${top.site} ranks first because of the excess cooling in its flagged month(s) (${(top.ex / 1000).toFixed(2)} GWh), which is larger than any site's gap to the PUE target.` : top.a.it >= Math.max(...list.map(x => x.a.it)) ? `${top.site} ranks first mainly because of its size: ${(top.a.it / 1000).toFixed(0)} GWh of IT energy, so even a small PUE gap means a lot of energy.` : `${top.site} ranks first because it has the largest gap to the PUE target relative to its size.`, 'The two figures overlap (fixing excess cooling also lowers PUE), so the ranking uses the larger of the two for each site rather than adding them.'],
         next: [`Start with the flagged cooling months at ${top.site}; they are concrete and quick to check.`, 'Then review seasonal PUE (summer peaks) on the Sites page.'],
         links: [['Open Sites', 'sites', top.site]], basis: `${s.plabel}. Gap energy = (PUE − ${PUE_TARGET.toFixed(2)}) × IT energy; cost at each site's average price. Synthetic operating data.` });
     } },
     { re: /capacit|headroom|full|expan|space|room|utili[sz]|load growth/, fn: () => {
-      const cap = N01_CAPACITY?.value, n = rows(MONTHS, ['N01']), last = n.at(-1), obs = [], expl = [], next = [];
+      const cap = N01_CAPACITY?.value, n = rows(MONTHS, ['N01']), last = n.at(-1), obs = [], expl = [], next = []; let shortTxt = 'Only N01 has a verified capacity figure.';
       if (cap && last) {
         const y = n.slice(-12).map(r => r.itLoadMW), xs = y.map((_, i) => i), mx = avgOf(xs.map(v => ({ v })), 'v'), my = y.reduce((t, v) => t + v, 0) / y.length;
         const slope = xs.reduce((t, x, i) => t + (x - mx) * (y[i] - my), 0) / xs.reduce((t, x) => t + (x - mx) ** 2, 0);
         const u = last.itLoadMW / cap, to85 = slope > 0 ? (0.85 * cap - last.itLoadMW) / slope : Infinity, to100 = slope > 0 ? (cap - last.itLoadMW) / slope : Infinity;
+        shortTxt = `N01 is ${(u * 100).toFixed(0)}% full (${last.itLoadMW.toFixed(1)} of ${cap} MW). ${isFinite(to85) ? `At the current growth it reaches 85% in about ${Math.max(0, Math.round(to85))} months, so expansion should be planned in time.` : 'Load is not growing, so there is no near-term limit.'} For OS-IX and DK01 the capacity is not verified, so their risk cannot be judged.`;
         obs.push(`<b>N01</b> uses ${last.itLoadMW.toFixed(1)} of ${cap} MW reported IT capacity (<b>${(u * 100).toFixed(0)}%</b>) in ${mLong(LAST)}, leaving ${(cap - last.itLoadMW).toFixed(1)} MW headroom.`);
         obs.push(`IT load grew about ${(slope * 12).toFixed(1)} MW per year over the last 12 months.${isFinite(to85) ? ` At that pace N01 reaches 85% in about ${Math.max(0, Math.round(to85))} months and 100% in about ${Math.round(to100)} months.` : ' Load is not growing, so there is no near-term limit.'}`);
         expl.push('This is a straight-line trend on synthetic load. New customer contracts arrive in steps, so real timing can be much faster or slower.');
@@ -924,13 +1071,13 @@
       }
       ['OS-IX', 'DK01'].filter(x => SITES.includes(x)).forEach(x => { const r = rows([LAST], [x])[0]; if (r) obs.push(`<b>${x}</b>: ${r.itLoadMW.toFixed(1)} MW average IT load. Installed capacity is not verified, so the risk cannot be assessed.`); });
       next.push('Obtain verified capacity figures for OS-IX and DK01.');
-      return answer({ title: 'Capacity risks', obs, expl, next, links: [['Open Capacity', 'capacity']], basis: 'N01 capacity: Menon Economics (Aug 2026), 2025. Load: synthetic monthly IT load.' });
+      return answer({ terms: ['capacity', 'headroom'], short: shortTxt, title: 'Capacity risks', obs, expl, next, links: [['Open Capacity', 'capacity']], basis: 'N01 capacity: Menon Economics (Aug 2026), 2025. Load: synthetic monthly IT load.' });
     } },
     { re: /peer|compet|nordic|benchmark|compare|atnorth|verne|green mountain|ecodata|stack|rival|market/, fn: () => {
       const b = agg(rows(MONTHS.filter(m => m.startsWith('2025')))), comps = competitors().filter(x => typeof x.pue === 'number').sort((x, y) => x.pue - y.pue);
       const indep = comps.filter(x => !/Falun/.test(x.facility)), avg = indep.reduce((t, x) => t + x.pue, 0) / indep.length;
       const better = comps.filter(x => x.pue < b.pue);
-      return answer({ title: 'How Bulk compares with Nordic peers', obs: [`Bulk's 2025 PUE is <b>${b.pue.toFixed(3)}</b>, ${((avg - b.pue) / avg * 100).toFixed(1)}% lower than the peer average of ${avg.toFixed(2)}.`,
+      return answer({ terms: ['pue', 'benchmark'], short: `Bulk's data centres use energy more efficiently than most Nordic competitors: PUE ${b.pue.toFixed(2)} against a peer average of ${avg.toFixed(2)} (about ${((avg - b.pue) / avg * 100).toFixed(0)}% better). Treat it as indicative, because the companies measure in different ways and Bulk's figure is simulated.`, title: 'How Bulk compares with Nordic peers', obs: [`Bulk's 2025 PUE is <b>${b.pue.toFixed(3)}</b>, ${((avg - b.pue) / avg * 100).toFixed(1)}% lower than the peer average of ${avg.toFixed(2)}.`,
         ...comps.map(x => `${esc(x.operator)} (${esc(x.facility)}, ${x.year}): ${x.pue.toFixed(x.merged ? 3 : 2)}, ${x.pue > b.pue ? `${(x.pue - b.pue).toFixed(3)} higher` : x.pue < b.pue ? `${(b.pue - x.pue).toFixed(3)} lower` : 'equal'} → ${(b.it * (x.pue - b.pue) / 1000).toFixed(1)} GWh/year difference at Bulk's scale.`),
         better.length ? `Lower than Bulk: ${better.map(x => esc(x.operator)).join(', ')}.` : 'No peer reports a lower PUE than Bulk\'s figure.'],
         expl: ['Bulk\'s figure is synthetic; the peers\' figures are published but from different years (2024/2025), scopes (portfolio vs. campus, some include non-electric energy) and climates (Iceland vs. Finland vs. Norway).', 'Differences under about 0.03 are within these method differences and should not be treated as real.'],
@@ -938,7 +1085,7 @@
         links: [['Open Benchmarking', 'benchmarking']], basis: 'Competitor Benchmarks sheet (verified annual PUE). STACK has no published figure and is excluded.' });
     } },
     { re: /cost|price|spend|nok|expens|bill|tariff|money/, fn: s => {
-      const a = agg(rows(s.months, s.sites)), p = periodMonths().prev, pa = p && s.months === periodMonths().cur ? agg(rows(p, s.sites)) : null;
+      const a = agg(rows(s.months, s.sites)), p = periodMonths().prev, pa = p && s.months.join() === periodMonths().cur.join() ? agg(rows(p, s.sites)) : null;
       const ms = s.months.map(m => ({ m, ...agg(rows([m], s.sites)) })).filter(x => x.total), hi = ms.reduce((x, y) => y.cost > x.cost ? y : x, ms[0] || {}), cheap = ms.reduce((x, y) => y.price < x.price ? y : x, ms[0] || {});
       const obs = [`Estimated cost ${s.site ? `at ${s.site}` : 'for all sites'}: <b>${nokM(a.cost)}</b> for ${(a.total / 1000).toFixed(1)} GWh in ${s.plabel}, an average of ${(a.price / 1000).toFixed(2)} NOK/kWh.`];
       if (hi.m) obs.push(`Highest month: ${mLong(hi.m)} (${nokM(hi.cost)}, ${hi.price.toFixed(0)} NOK/MWh). Cheapest power: ${mLong(cheap.m)} (${cheap.price.toFixed(0)} NOK/MWh).`);
@@ -950,37 +1097,48 @@
       }
       if (!s.site) SITES.forEach(x => { const b = agg(rows(s.months, [x])); if (b.total) obs.push(`${x}: ${nokM(b.cost)} (${(b.cost / a.cost * 100).toFixed(0)}%), ${(b.price / 1000).toFixed(2)} NOK/kWh in ${esc(zone(x))}.`); });
       expl.push('Prices differ between price zones (NO1, NO2, DK1) and peak in winter.');
-      return answer({ title: 'What drives energy cost', obs, expl, next: ['Lowering PUE reduces cost most in high-price months.', 'Hedging and contracts are outside this data; involve finance for real cost.'], links: [['Open Energy & Cost', 'energy']], basis: 'Cost = facility MWh × synthetic market price index. Not Bulk\'s invoice: tariffs, taxes and hedges are excluded.' });
+      return answer({ terms: ['price zone', 'market price'], short: `Electricity cost about ${nokM(a.cost)} in ${s.plabel}${s.site ? ` at ${s.site}` : ''}. ${expl[0] || 'Cost follows both how much energy is used and the market price, which is highest in winter.'}`, title: 'What drives energy cost', obs, expl, next: ['Lowering PUE reduces cost most in high-price months.', 'Hedging and contracts are outside this data; involve finance for real cost.'], links: [['Open Energy & Cost', 'energy']], basis: 'Cost = facility MWh × synthetic market price index. Not Bulk\'s invoice: tariffs, taxes and hedges are excluded.' });
     } },
     { re: /pue|efficien|perform|how (is|are|did)|trend|status/, fn: s => {
       const a = agg(rows(s.months, s.sites)), ms = s.months.map(m => ({ m, ...agg(rows([m], s.sites)) })).filter(x => x.it);
       if (!ms.length) return answer({ title: 'No data', obs: [`No data for ${s.plabel}.`], expl: [], next: [] });
       const best = ms.reduce((x, y) => y.pue < x.pue ? y : x), worst = ms.reduce((x, y) => y.pue > x.pue ? y : x), above = ms.filter(x => x.pue > PUE_TARGET);
-      return answer({ title: `Efficiency ${s.site ? `at ${s.site}` : 'across all sites'}`, obs: [`PUE <b>${a.pue.toFixed(3)}</b> in ${s.plabel} (target max. ${PUE_TARGET.toFixed(2)}). Cooling is ${(a.coolShare * 100).toFixed(1)}% of all energy.`, `Best month ${mLong(best.m)} (${best.pue.toFixed(3)}), worst ${mLong(worst.m)} (${worst.pue.toFixed(3)}). ${above.length} of ${ms.length} months are above target.`,
+      return answer({ terms: ['pue'], short: `${s.site || 'All sites'}: PUE ${a.pue.toFixed(2)} in ${s.plabel}. For every 1 kWh the servers use, about ${((a.pue - 1) * 1000).toFixed(0)} Wh extra goes to cooling and other overhead. ${a.pue <= PUE_TARGET ? 'That meets' : 'That is just above'} Bulk's target of ${PUE_TARGET.toFixed(2)}.`, title: `Efficiency ${s.site ? `at ${s.site}` : 'across all sites'}`, obs: [`PUE <b>${a.pue.toFixed(3)}</b> in ${s.plabel} (target max. ${PUE_TARGET.toFixed(2)}). Cooling is ${(a.coolShare * 100).toFixed(1)}% of all energy.`, `Best month ${mLong(best.m)} (${best.pue.toFixed(3)}), worst ${mLong(worst.m)} (${worst.pue.toFixed(3)}). ${above.length} of ${ms.length} months are above target.`,
         ...(!s.site ? SITES.map(x => { const b = agg(rows(s.months, [x])); return b.it ? `${x}: PUE ${b.pue.toFixed(3)}` : null; }).filter(Boolean) : [])],
         expl: ['PUE usually rises in summer because cooling works harder; worse months that coincide with cooling flags point to a technical cause.'], next: ['Check months above target on the Sites page.'], links: [['Open Sites', 'sites', s.site || state.site]], basis: 'PUE = total ÷ IT energy, energy-weighted. Synthetic operating data.' });
     } },
     { re: /energy|consum|gwh|mwh|usage|use/, fn: s => {
       const a = agg(rows(s.months, s.sites));
-      return answer({ title: `Energy use ${s.site ? `at ${s.site}` : ''}`, obs: [`${(a.total / 1000).toFixed(1)} GWh in ${s.plabel}: IT ${(a.it / a.total * 100).toFixed(0)}%, cooling ${(a.cool / a.total * 100).toFixed(0)}%, other ${(a.other / a.total * 100).toFixed(0)}%.`, ...(!s.site ? SITES.map(x => { const b = agg(rows(s.months, [x])); return b.total ? `${x}: ${(b.total / 1000).toFixed(1)} GWh (${(b.total / a.total * 100).toFixed(0)}%)` : null; }).filter(Boolean) : [])],
+      return answer({ terms: ['mwh', 'it energy'], short: `${(a.total / 1000).toFixed(1)} GWh used in ${s.plabel}${s.site ? ` at ${s.site}` : ''}. About ${(a.it / a.total * 100).toFixed(0)}% went to the customers' servers; the rest to cooling and other overhead.`, title: `Energy use ${s.site ? `at ${s.site}` : ''}`, obs: [`${(a.total / 1000).toFixed(1)} GWh in ${s.plabel}: IT ${(a.it / a.total * 100).toFixed(0)}%, cooling ${(a.cool / a.total * 100).toFixed(0)}%, other ${(a.other / a.total * 100).toFixed(0)}%.`, ...(!s.site ? SITES.map(x => { const b = agg(rows(s.months, [x])); return b.total ? `${x}: ${(b.total / 1000).toFixed(1)} GWh (${(b.total / a.total * 100).toFixed(0)}%)` : null; }).filter(Boolean) : [])],
         expl: ['Rising energy mostly reflects more customer IT load; judge efficiency with PUE.'], next: [], links: [['Open Energy & Cost', 'energy']], basis: 'Monthly facility energy, synthetic.' });
     } },
-    { re: /help|what can|how do i|hello|hi\b|hey/, fn: () => answer({ title: 'What I can help with', headings: { obs: 'Topics', next: 'Tip' }, obs: ['Cooling anomalies and their possible causes', 'Where the biggest savings are', 'Capacity and headroom', 'Comparison with Nordic peers', 'Energy cost and price drivers', 'PUE and energy use for a site or period'], expl: [], next: ['Name a site (N01, OS-IX, DK01, Oslo, Esbjerg…) or a period (2025, last month) in your question to change the focus. Otherwise I use the page\'s current context.'], basis: 'All answers are calculated from the loaded data with the same formulas as the dashboard.' }) },
+    { re: /help|what can|hello|\bhi\b|hey|how does (this|the copilot) work/, fn: () => answer({ plain: true, title: 'What I can help with', short: `I can explain the numbers in plain language ("What is PUE?"), answer specific questions ("What was cooling at N01 in June 2026?", "When will N01 reach 80% of capacity?"), find causes and savings, compare Bulk with competitors, and show you where things are in the ${isPhoneNow() ? 'app' : 'dashboard'} ("How do I upload new data?"). Name a site or a month in your question to change the focus. Use <b>Simple</b> for short plain answers or <b>Detailed</b> for all the numbers.`, basis: 'Answers are calculated from the loaded data with the same formulas as the dashboard. No external AI service is used.' }) },
   ];
   function respond(q) {
-    const s = scope(q), hit = INTENTS.find(i => i.re.test(q.toLowerCase()));
-    if (!hit) return answer({ title: 'I\'m not sure what you\'re asking', headings: { obs: 'What I can do', next: 'Try this' }, obs: ['I answer questions about energy, cooling, cost, capacity and peer benchmarks, using the dashboard\'s data.'], expl: [], next: ['Try one of the suggestions below, or rephrase with a keyword such as "cooling", "cost", "capacity" or "peers".'], suggest: true });
-    const a = hit.fn(s); a.scope = `${s.site || 'All sites'} · ${s.plabel}`; return a;
+    const t = q.toLowerCase(), s = scope(q), hit = INTENTS.find(i => i.re.test(t) && !(i.skip && i.skip.test(t)) && (!i.test || i.test(t, s)));
+    if (!hit) return answer({ title: 'I\'m not sure what you\'re asking', headings: { obs: 'What I can do', next: 'Try this' }, plain: true, short: 'I answer questions about energy, cooling, cost, capacity and competitors, explain terms in plain language, and help you find your way in the ' + (isPhoneNow() ? 'app' : 'dashboard') + '. Try rephrasing with a keyword such as "cooling", "cost", "capacity", "PUE" or "where is…", or pick a suggestion below.', suggest: true });
+    const a = hit.fn(s, q); if (!a.plain) a.scope = `${s.site || 'All sites'} · ${s.plabel}`; return a;
   }
   function renderAnswer(a) {
     const H = a.headings || {};
     const list = (h, items, cls) => items && items.length ? `<div class="cp-sec ${cls}"><b>${h}</b><ul>${items.map(x => `<li>${x}</li>`).join('')}</ul></div>` : '';
-    return `<div class="cp-msg bot"><span class="cp-av">${ic('bot', 16)}</span><div class="cp-body"><div class="cp-title">${a.title}</div>
-      ${list(H.obs || 'Observations (from the data)', a.obs, 'obs')}${list('Possible explanations (not confirmed)', a.expl, 'expl')}${list(H.next || 'Suggested next steps', a.next, 'next')}
-      ${a.links ? `<div class="cp-links">${a.links.map(([l, p, st]) => `<button class="btn ghost sm" data-cp-go="${p}" ${st ? `data-cp-site="${esc(st)}"` : ''}>${l} ${ic('arrow', 12)}</button>`).join('')}</div>` : ''}
-      ${a.basis || a.scope ? `<div class="cp-basis">${a.scope ? `Scope: ${esc(a.scope)}. ` : ''}${a.basis || ''} Decision support, not a decision.</div>` : ''}
+    const full = `${list(H.obs || 'Observations (from the data)', a.obs, 'obs')}${list('Possible explanations (not confirmed)', a.expl, 'expl')}${list(H.next || 'Suggested next steps', a.next, 'next')}`;
+    const short = a.short || (a.obs && a.obs[0]) || '';
+    const terms = (a.terms || []).map(k => GLOSS.find(([re, n]) => re.test(k.toLowerCase()) || n.toLowerCase().startsWith(k.toLowerCase()))).filter((g, i, arr) => g && arr.indexOf(g) === i);
+    const links = a.links ? `<div class="cp-links">${a.links.map(([l, p, st]) => `<button class="btn ghost sm" data-cp-go="${p}" ${st ? `data-cp-site="${esc(st)}"` : ''}>${l} ${ic('arrow', 12)}</button>`).join('')}</div>` : '';
+    const basis = a.basis || a.scope ? `<div class="cp-basis">${a.scope ? `Scope: ${esc(a.scope)}. ` : ''}${a.basis || ''}${a.plain ? '' : ' Decision support, not a decision.'}</div>` : '';
+    const body = a.plain ? `<div class="cp-plain">${short}</div>` : `
+      <div class="cp-simple"><div class="cp-short">${short}</div>
+        ${terms.length ? `<div class="cp-terms">${terms.map(([, n, d]) => `<span title="${esc(d)}"><b>${esc(n)}</b>: ${esc(d.split('. ')[0])}.</span>`).join('')}</div>` : ''}
+        ${full ? `<details class="cp-more"><summary>Show the numbers and possible explanations</summary>${full}</details>` : ''}</div>
+      <div class="cp-detailed">${full || `<div class="cp-plain">${short}</div>`}</div>`;
+    return `<div class="cp-msg bot"><span class="cp-av">${ic('bot', 16)}</span><div class="cp-body"><div class="cp-title">${a.title}</div>${body}${links}${basis}
       ${a.suggest ? `<div class="cp-sugs">${SUGGESTIONS.map(x => `<button class="cp-sug" data-cp-q="${esc(x)}">${esc(x)}</button>`).join('')}</div>` : ''}</div></div>`;
   }
+  state.cpMode = store.get('cpMode', 'simple');
+  const applyMode = () => { document.body.classList.toggle('cpm-detailed', state.cpMode === 'detailed'); document.querySelectorAll('[data-cp-mode]').forEach(b => b.classList.toggle('on', b.dataset.cpMode === state.cpMode)); };
+  const modeToggle = () => `<div class="cp-mode" role="group" aria-label="Answer style"><button type="button" data-cp-mode="simple" title="Short answers in plain language">Simple</button><button type="button" data-cp-mode="detailed" title="All numbers, explanations and next steps">Detailed</button></div>`;
+  document.addEventListener('click', e => { const b = e.target.closest('[data-cp-mode]'); if (b) { state.cpMode = b.dataset.cpMode; store.set('cpMode', state.cpMode); applyMode(); } });
 
   // UI
   document.body.insertAdjacentHTML('beforeend', `
@@ -990,6 +1148,7 @@
       <button class="cp-grab" id="cp-grab" aria-label="Close Copilot"><span></span></button>
       <header class="cp-head"><span class="cp-hic">${ic('bot', 18)}</span><div><b>AI Copilot</b><div class="small">Decision support · workbook data · no external AI</div></div>
         <button class="cp-hbtn cp-exp" id="cp-expand" aria-label="Expand">${ic('expand', 17)}</button><button class="cp-hbtn cp-x" id="cp-close" aria-label="Close Copilot">${ic('x', 20)}</button></header>
+      <div class="cp-bar">${modeToggle()}</div>
       <div class="cp-log" id="cp-log">
         <div class="cp-msg bot"><span class="cp-av">${ic('bot', 16)}</span><div class="cp-body"><div class="cp-title">Explore what the energy, efficiency, anomaly, capacity and peer data shows.</div>
           <p class="cp-intro">Answers are calculated from the workbook with the same engine as the dashboards and separate observations from possible explanations. They support decisions rather than make them. No external AI service is used.</p></div></div>
@@ -1001,26 +1160,28 @@
   const cpNav = document.querySelector('.sidebar a[data-copilot]');
   const backdrop = document.getElementById('cp-backdrop');
   const phone = () => matchMedia('(max-width: 640px)').matches;
-  const openCp = () => { qin.placeholder = phone() ? 'Ask about energy, cooling, cost…' : 'Ask a question, e.g. Why did cooling energy increase?'; panel.hidden = false; backdrop.hidden = !phone(); document.body.classList.add('cp-open'); cpNav?.classList.add('active'); if (phone() && !history.state?.cp) history.pushState({ ...(history.state || {}), cp: 1 }, ''); document.getElementById('cp-ctx').textContent = ctxLabel(); if (!phone()) setTimeout(() => qin.focus(), 30); };
-  const closeCp = (fromBack) => { if (panel.hidden) return; panel.hidden = true; backdrop.hidden = true; document.body.classList.remove('cp-open'); cpNav?.classList.remove('active'); if (!fromBack && history.state?.cp) history.back(); if (!phone()) fab.focus(); };
+  const openCp = () => { qin.placeholder = phone() ? 'Ask about energy, cooling, cost…' : 'Ask a question, e.g. Why did cooling energy increase?'; panel.hidden = false; backdrop.hidden = !phone(); document.body.classList.add('cp-open'); applyMode(); if (phone() && !history.state?.cp) history.pushState({ ...(history.state || {}), cp: 1 }, ''); document.getElementById('cp-ctx').textContent = ctxLabel(); if (!phone()) setTimeout(() => qin.focus(), 30); };
+  const closeCp = (fromBack) => { if (panel.hidden) return; panel.hidden = true; backdrop.hidden = true; document.body.classList.remove('cp-open'); if (!fromBack && history.state?.cp) history.back(); if (!phone()) fab.focus(); };
   // Phone: the back button / back swipe closes the chat; tapping outside or the grab handle closes it too.
   window.addEventListener('popstate', () => closeCp(true));
   backdrop.addEventListener('click', () => closeCp());
   document.getElementById('cp-grab').addEventListener('click', () => closeCp());
-  cpNav?.addEventListener('click', e => { if (e.target.closest('.info-btn')) return; e.preventDefault(); panel.hidden ? openCp() : closeCp(); });
-  function ask(q) {
+  function askInto(logEl, inputEl, q, opts = {}) {
     q = String(q || '').trim(); if (!q) return;
-    log.querySelectorAll(':scope > .cp-sugs').forEach(el => el.remove());
-    log.insertAdjacentHTML('beforeend', `<div class="cp-msg me"><div class="cp-body">${esc(q)}</div></div><div class="cp-msg bot typing"><span class="cp-av">${ic('bot', 16)}</span><div class="cp-body"><i></i><i></i><i></i></div></div>`);
-    log.scrollTop = log.scrollHeight; qin.value = '';
+    logEl.querySelectorAll(':scope > .cp-sugs').forEach(el => el.remove());
+    logEl.insertAdjacentHTML('beforeend', `<div class="cp-msg me"><div class="cp-body">${esc(q)}</div></div><div class="cp-msg bot typing"><span class="cp-av">${ic('bot', 16)}</span><div class="cp-body"><i></i><i></i><i></i></div></div>`);
+    logEl.scrollTop = logEl.scrollHeight; if (inputEl) inputEl.value = '';
     setTimeout(() => {
-      log.querySelector('.typing')?.remove();
-      let html; try { html = renderAnswer(respond(q)); } catch (err) { console.error(err); html = renderAnswer({ title: 'Something went wrong', obs: ['I could not calculate an answer from the current data.'], expl: [], next: [] }); }
-      log.insertAdjacentHTML('beforeend', html);
-      const msgs = log.querySelectorAll('.cp-msg.bot'); msgs[msgs.length - 1].scrollIntoView({ block: 'start', behavior: 'smooth' });
-      if (log.querySelectorAll('.cp-msg.me').length === 1) log.insertAdjacentHTML('beforeend', `<div class="cp-sugs">${MORE.concat(SUGGESTIONS.filter(x => x !== q)).slice(0, 4).map(x => `<button class="cp-sug" data-cp-q="${esc(x)}">${esc(x)}</button>`).join('')}</div>`);
-    }, 450);
+      logEl.querySelector('.typing')?.remove();
+      let html; try { html = renderAnswer(respond(q)); } catch (err) { console.error(err); html = renderAnswer({ plain: true, title: 'Something went wrong', short: 'I could not calculate an answer from the current data.' }); }
+      logEl.insertAdjacentHTML('beforeend', html);
+      const msgs = logEl.querySelectorAll('.cp-msg.bot'), lastMsg = msgs[msgs.length - 1];
+      logEl.scrollTop = lastMsg.offsetTop - logEl.offsetTop - 8;
+      if (opts.followups && logEl.querySelectorAll('.cp-msg.me').length === 1) logEl.insertAdjacentHTML('beforeend', `<div class="cp-sugs">${(isPhoneNow() ? PHONE_MORE : MORE).concat(SUGGESTIONS.filter(x => x !== q)).slice(0, 4).map(x => `<button class="cp-sug" data-cp-q="${esc(x)}">${esc(x)}</button>`).join('')}</div>`);
+      opts.done?.();
+    }, 420);
   }
+  const ask = q => askInto(log, qin, q, { followups: true });
   fab.addEventListener('click', () => (panel.hidden ? openCp() : closeCp()));
   document.getElementById('cp-close').addEventListener('click', () => closeCp());
   document.getElementById('cp-expand').addEventListener('click', e => { const on = panel.classList.toggle('wide'); e.currentTarget.innerHTML = ic(on ? 'shrink' : 'expand', 17); e.currentTarget.setAttribute('aria-label', on ? 'Collapse' : 'Expand'); });
@@ -1031,8 +1192,52 @@
     if (g) { if (g.dataset.cpSite) state.site = g.dataset.cpSite; if (phone()) { closeCp(true); if (history.state?.cp) history.replaceState({}, ''); } if (location.hash === '#' + g.dataset.cpGo) render(); else location.hash = g.dataset.cpGo; document.getElementById('cp-ctx').textContent = ctxLabel(); }
   });
   document.addEventListener('keydown', e => {
-    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'j') { e.preventDefault(); panel.hidden ? openCp() : closeCp(); }
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'j') { e.preventDefault(); if (isPhoneNow()) { panel.hidden ? openCp() : closeCp(); } else if (currentPage === 'copilot') document.getElementById('cpp-q')?.focus(); else { closeCp(); location.hash = 'copilot'; } }
     else if (e.key === 'Escape' && !panel.hidden && !document.querySelector('.modal-bg')) closeCp();
+  });
+
+  /* ---------- Copilot page (computer) ---------- */
+  state.cpSite = '';
+  let cppHist = null;
+  const ASK_GROUPS = () => [
+    ['Explained simply', ['What is PUE?', 'What is the difference between MW and MWh?', 'What is a price zone?', 'What does headroom mean?']],
+    ['Cooling & anomalies', ['Why did cooling energy increase?', 'Which months were flagged for cooling review?', 'How is expected cooling calculated?', 'What was cooling at N01 in June 2026?']],
+    ['Efficiency & savings', ['Which site has the highest optimisation potential?', 'Which site has the best PUE?', 'Why did energy cost increase?']],
+    ['Capacity', ['What capacity risks exist?', 'When will N01 reach 80% of capacity?']],
+    ['Sites, peers & data', ['Tell me about DK01', 'How do we compare with Nordic peers?', 'How is PUE calculated?']],
+    [isPhoneNow() ? 'Using the app' : 'Using the dashboard', isPhoneNow() ? ['How do I change the period?', 'What does the ⓘ button do?', 'How do I install the app?', 'Where is Benchmarking?'] : ['Where can I compare competitors?', 'How do I upload new data?', 'How do I change the period?', 'What does the ⓘ button do?', 'How do I install the app?']],
+  ];
+  const cpWelcome = () => `<div class="cp-msg bot"><span class="cp-av">${ic('bot', 16)}</span><div class="cp-body"><div class="cp-title">Explore what the energy, efficiency, anomaly, capacity and peer data shows.</div>
+      <p class="cp-intro">Ask in your own words, from "What is PUE?" to "What was cooling at N01 in June 2026?". I can also show you where things are in the dashboard. Answers are calculated from the workbook with the same engine as the dashboards and separate observations from possible explanations. They support decisions rather than make them. No external AI service is used.</p></div></div>
+    <div class="cp-sugs grid">${SUGGESTIONS.map(x => `<button class="cp-sug" data-cp-q="${esc(x)}">${esc(x)}</button>`).join('')}</div>`;
+  pages.copilot = () => {
+    const siteSel = `<select data-bind="cpSite" aria-label="Site"><option value="">All sites</option>${SITES.map(x => `<option value="${esc(x)}" ${state.cpSite === x ? 'selected' : ''}>${esc(x)}</option>`).join('')}</select>`;
+    app.innerHTML = head('AI Copilot', 'Decision support: explore what the energy, efficiency, anomaly and capacity data shows, or ask how to use the dashboard', siteSel + periodSelect()) +
+      `<div class="cp-ctxline">${esc(ctxLabel())} <span class="badge heur" title="Rule-based answers from the workbook formulas, not a trained AI model">Heuristic</span></div>
+      <div class="cp-page">
+        <div class="card cp-chat" data-info-key="chat">
+          <div class="cp-chat-head"><b>${ic('bot', 16)} Chat</b>${modeToggle()}<button class="btn ghost sm" data-action="cp-clear" title="Start a new conversation">New chat</button></div>
+          <div class="cp-log" id="cpp-log">${cppHist || cpWelcome()}</div>
+          <form class="cp-foot" id="cpp-form"><div class="cp-input"><input id="cpp-q" autocomplete="off" maxlength="300" placeholder="Ask a question, e.g. Why did cooling energy increase?" aria-label="Ask a question"><button type="submit" class="cp-send" aria-label="Send">${ic('send', 17)}</button></div>
+            <div class="cp-ctx">${esc(ctxLabel())} · a site or period in your question overrides this</div></form>
+        </div>
+        <div class="card cp-ask" data-info-key="ask"><h3>${ic('book')} What you can ask</h3>
+          ${ASK_GROUPS().map(([g, qs]) => `<div class="cp-group">${g}</div>${qs.map(x => `<button class="cp-q" data-cp-q="${esc(x)}"><span>${esc(x)}</span>${ic('chev', 14)}</button>`).join('')}`).join('')}
+        </div>
+      </div>`;
+    applyMode();
+    const logEl = document.getElementById('cpp-log'), inp = document.getElementById('cpp-q');
+    logEl.scrollTop = logEl.scrollHeight;
+    const save = () => { cppHist = logEl.innerHTML; };
+    document.getElementById('cpp-form').addEventListener('submit', e => { e.preventDefault(); askInto(logEl, inp, inp.value, { done: save }); });
+    app.querySelectorAll('[data-cp-q]').forEach(b => b.addEventListener('click', () => { askInto(logEl, inp, b.dataset.cpQ, { done: save }); inp.focus(); }));
+    logEl.addEventListener('click', e => { const b = e.target.closest('[data-cp-q]'); if (b && !b.closest('.cp-ask')) askInto(logEl, inp, b.dataset.cpQ, { done: save }); });
+    setTimeout(() => inp.focus(), 30);
+  };
+  app.addEventListener('click', e => {
+    const g = e.target.closest('[data-cp-go]');
+    if (g) { if (g.dataset.cpSite) state.site = g.dataset.cpSite; location.hash = g.dataset.cpGo; }
+    if (e.target.closest('[data-action="cp-clear"]')) { cppHist = null; render(); }
   });
 
   /* ---------- router & events ---------- */
@@ -1044,7 +1249,10 @@
     charts.forEach(c => c.destroy()); charts = [];
     const page = (location.hash || '#overview').slice(1);
     let key = pages[page] ? page : 'overview';
-    if (phoneMQ.matches && !PHONE_PAGES.includes(key)) { key = 'overview'; history.replaceState(null, '', '#overview'); }
+    if (phoneMQ.matches && key === 'copilot') { history.replaceState(null, '', '#overview'); key = 'overview'; setTimeout(() => openCp(), 0); }
+    else if (phoneMQ.matches && !PHONE_PAGES.includes(key)) { key = 'overview'; history.replaceState(null, '', '#overview'); }
+    document.body.classList.toggle('on-copilot', key === 'copilot');
+    if (key === 'copilot') closeCp();
     document.querySelectorAll('[data-page]').forEach(a => a.classList.toggle('active', a.dataset.page === key));
     currentPage = key; hideInfo();
     pages[key]();
