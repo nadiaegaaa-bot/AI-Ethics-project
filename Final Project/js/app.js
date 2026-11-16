@@ -1,6 +1,6 @@
 /* Bulk Energy Intelligence dashboard. Every number is computed from window.BULK_DATA (js/data.js), generated from the Excel workbook. */
 (() => {
-  const ICONS = {"methods": "<rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"3\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M12 6.5v2M12 15.5v2M6.5 12h2M15.5 12h2M8.2 8.2l1.4 1.4M14.4 14.4l1.4 1.4M8.2 15.8l1.4-1.4M14.4 9.6l1.4-1.4\"/>", "bot": "<rect x=\"4\" y=\"8\" width=\"16\" height=\"12\" rx=\"3\"/><path d=\"M12 4v4M9 13h.01M15 13h.01M9.5 16.5h5\"/><circle cx=\"12\" cy=\"3.5\" r=\"1\"/>", "lock": "<rect x=\"5\" y=\"11\" width=\"14\" height=\"10\" rx=\"2\"/><path d=\"M8 11V7a4 4 0 0 1 8 0v4\"/>", "home": "<path d=\"M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z\"/>", "sites": "<rect x=\"3\" y=\"7\" width=\"7\" height=\"14\"/><rect x=\"10\" y=\"3\" width=\"11\" height=\"18\"/><path d=\"M13 7h2M17 7h1M13 11h2M17 11h1M13 15h2M17 15h1\"/>", "bolt": "<path d=\"M13 2L4 14h7l-1 8 9-12h-7z\"/>", "spark": "<path d=\"M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z\"/>", "db": "<ellipse cx=\"12\" cy=\"5\" rx=\"8\" ry=\"3\"/><path d=\"M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3\"/>", "chart": "<path d=\"M3 3v18h18M8 17V11M13 17V7M18 17v-4\"/>", "file": "<path d=\"M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z\"/><path d=\"M14 3v5h5M9 13h6M9 17h6\"/>", "gear": "<circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z\"/>", "warn": "<path d=\"M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01\"/>", "bulb": "<path d=\"M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1V17h6v-.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z\"/>", "check": "<path d=\"M20 6L9 17l-5-5\"/>", "info": "<circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M12 16v-4M12 8h.01\"/>", "target": "<circle cx=\"12\" cy=\"12\" r=\"9\"/><circle cx=\"12\" cy=\"12\" r=\"5\"/><circle cx=\"12\" cy=\"12\" r=\"1\"/>", "leaf": "<path d=\"M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.5 19 2c1 2 2 4.2 2 8 0 5.5-4.8 10-10 10zM2 21c0-3 1.9-5.4 5.1-6\"/>", "link": "<path d=\"M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7\"/>", "down": "<path d=\"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3\"/>", "up": "<path d=\"M3 17l6-6 4 4 8-8M15 7h6v6\"/>", "dn": "<path d=\"M3 7l6 6 4-4 8 8M15 17h6v-6\"/>", "chev": "<path d=\"M9 18l6-6-6-6\"/>", "arrow": "<path d=\"M5 12h14M13 6l6 6-6 6\"/>", "db2": "<ellipse cx=\"12\" cy=\"5\" rx=\"8\" ry=\"3\"/><path d=\"M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 11v8c0 1.7 3.6 3 8 3s8-1.3 8-3v-8\"/>", "book": "<path d=\"M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z\"/><path d=\"M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5\"/>", "ext": "<path d=\"M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3\"/>"};
+  const ICONS = {"star": "<path d=\"M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z\"/>", "methods": "<rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"3\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M12 6.5v2M12 15.5v2M6.5 12h2M15.5 12h2M8.2 8.2l1.4 1.4M14.4 14.4l1.4 1.4M8.2 15.8l1.4-1.4M14.4 9.6l1.4-1.4\"/>", "bot": "<rect x=\"4\" y=\"8\" width=\"16\" height=\"12\" rx=\"3\"/><path d=\"M12 4v4M9 13h.01M15 13h.01M9.5 16.5h5\"/><circle cx=\"12\" cy=\"3.5\" r=\"1\"/>", "lock": "<rect x=\"5\" y=\"11\" width=\"14\" height=\"10\" rx=\"2\"/><path d=\"M8 11V7a4 4 0 0 1 8 0v4\"/>", "home": "<path d=\"M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z\"/>", "sites": "<rect x=\"3\" y=\"7\" width=\"7\" height=\"14\"/><rect x=\"10\" y=\"3\" width=\"11\" height=\"18\"/><path d=\"M13 7h2M17 7h1M13 11h2M17 11h1M13 15h2M17 15h1\"/>", "bolt": "<path d=\"M13 2L4 14h7l-1 8 9-12h-7z\"/>", "spark": "<path d=\"M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z\"/>", "db": "<ellipse cx=\"12\" cy=\"5\" rx=\"8\" ry=\"3\"/><path d=\"M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3\"/>", "chart": "<path d=\"M3 3v18h18M8 17V11M13 17V7M18 17v-4\"/>", "file": "<path d=\"M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z\"/><path d=\"M14 3v5h5M9 13h6M9 17h6\"/>", "gear": "<circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z\"/>", "warn": "<path d=\"M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01\"/>", "bulb": "<path d=\"M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1V17h6v-.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z\"/>", "check": "<path d=\"M20 6L9 17l-5-5\"/>", "info": "<circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M12 16v-4M12 8h.01\"/>", "target": "<circle cx=\"12\" cy=\"12\" r=\"9\"/><circle cx=\"12\" cy=\"12\" r=\"5\"/><circle cx=\"12\" cy=\"12\" r=\"1\"/>", "leaf": "<path d=\"M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.5 19 2c1 2 2 4.2 2 8 0 5.5-4.8 10-10 10zM2 21c0-3 1.9-5.4 5.1-6\"/>", "link": "<path d=\"M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7\"/>", "down": "<path d=\"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3\"/>", "up": "<path d=\"M3 17l6-6 4 4 8-8M15 7h6v6\"/>", "dn": "<path d=\"M3 7l6 6 4-4 8 8M15 17h6v-6\"/>", "chev": "<path d=\"M9 18l6-6-6-6\"/>", "arrow": "<path d=\"M5 12h14M13 6l6 6-6 6\"/>", "db2": "<ellipse cx=\"12\" cy=\"5\" rx=\"8\" ry=\"3\"/><path d=\"M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 11v8c0 1.7 3.6 3 8 3s8-1.3 8-3v-8\"/>", "book": "<path d=\"M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z\"/><path d=\"M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5\"/>", "ext": "<path d=\"M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3\"/>"};
   const ic = (n, s = 15) => `<svg class="icon" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICONS[n] || ''}</svg>`;
 
   const D = window.BULK_DATA;
@@ -188,6 +188,41 @@
       </ul>
       <p class="small">Prototype for internal use. Operating figures are synthetic (from the project workbook); verified facts and sources are listed under Data &amp; Methods.</p></div></div>`;
   }
+  pages.home = () => {
+    const a = cur(), flags = flagged(periodMonths().cur), flagSites = [...new Set(flags.map(f => f.site))];
+    const n01Last = rows([LAST], ['N01'])[0], cap = N01_CAPACITY ? N01_CAPACITY.value : null;
+    const tiles = [
+      ['overview', 'home', 'Overview', 'Key numbers for all sites'],
+      ['sites', 'sites', 'Sites', 'One data centre at a time'],
+      ['energy', 'bolt', 'Energy & Cost', 'Consumption and spend'],
+      ['insights', 'spark', 'AI Insights', 'Cooling alerts and actions'],
+      ['copilot', 'bot', 'Copilot', 'Ask questions in plain language'],
+      ['capacity', 'db', 'Capacity', 'Load and headroom'],
+      ['benchmarking', 'chart', 'Benchmarking', 'Compare with Nordic peers'],
+      ['reports', 'file', 'Reports', 'Download or upload data'],
+      ['data', 'methods', 'Data & Methods', 'Sources and definitions'],
+    ];
+    app.innerHTML = `<section class="home-hero card" data-info-key="welcome">
+        <div class="home-logo"><svg viewBox="0 0 40 24" width="56" height="34" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"><path d="M2 22 L13 6 L20 15 L27 4 L38 22"/></svg></div>
+        <div class="home-badges"><span class="badge conf">${ic('lock', 11)} Confidential</span> ${badge()}</div>
+        <h1 class="home-title">Bulk Energy Intelligence</h1>
+        <p class="home-lead phone-only">Energy, cooling, cost and AI alerts for Bulk's data centres in one place.</p>
+        <p class="home-lead desktop-only">One place for energy, cooling, cost, capacity and benchmark data for Bulk's data centres: ${SITES.map(x => `${esc(x)} ${esc(SITE_INFO[x]?.location || '')}`).join(', ')}.</p>
+        <p class="home-text desktop-only">It helps operations, finance and management see how efficiently each site uses electricity, catch unusual cooling early, plan capacity, and compare Bulk with other Nordic operators. You don't need a technical background: hover over or click ${ic('info', 12)} on any card for a plain-language explanation, or ask the Copilot.</p>
+        <div class="home-cta"><a class="btn" href="#overview">Go to Overview ${ic('arrow', 14)}</a><a class="btn ghost" href="#copilot" data-home-cp="1">${ic('bot', 14)} Ask Copilot</a></div>
+      </section>
+      <div class="card home-now" data-info-key="right now"><h3>${ic('target')} Right now · ${rangeLabel()}</h3>
+        <div class="home-stats">
+          <a href="#overview" class="hs"><span>Efficiency (PUE)</span><b>${a.pue.toFixed(2)}</b><em>${a.pue <= PUE_TARGET ? 'within' : `${((a.pue - PUE_TARGET) / PUE_TARGET * 100).toFixed(1)}% above`} the ${PUE_TARGET.toFixed(2)} target</em></a>
+          <a href="#energy" class="hs"><span>Energy used</span><b>${gwh(a.total)}</b><em>about ${nokM(a.cost)} at market prices</em></a>
+          <a href="#insights" class="hs ${flags.length ? 'warn' : ''}"><span>Needs attention</span><b>${flags.length ? `${flags.length} cooling flag${flags.length > 1 ? 's' : ''}` : 'Nothing flagged'}</b><em>${flags.length ? `at ${flagSites.join(', ')}` : 'all sites within the model'}</em></a>
+          ${n01Last && cap ? `<a href="#capacity" class="hs desk"><span>N01 capacity used</span><b>${(n01Last.itLoadMW / cap * 100).toFixed(0)}%</b><em>${n01Last.itLoadMW.toFixed(1)} of ${cap} MW</em></a>` : ''}
+        </div></div>
+      <div class="card home-tiles" data-info-key="where to start"><h3>${ic('book')} Where to start</h3>
+        <div class="tiles">${tiles.map(([pg, icon, name, txt]) => `<a class="tile ${['overview', 'sites', 'energy', 'insights', 'copilot'].includes(pg) ? '' : 'desk'}" href="#${pg}" ${pg === 'copilot' ? 'data-home-cp="1"' : ''}>${ic(icon, 18)}<b>${name}</b><span>${txt}</span></a>`).join('')}</div></div>
+      <p class="home-foot small">Prototype for internal use. Operating figures are synthetic (from the project workbook). Verified facts and sources are listed under Data &amp; Methods.</p>`;
+    app.querySelectorAll('[data-home-cp]').forEach(el => el.addEventListener('click', e => { if (isPhoneNow()) { e.preventDefault(); openCp(); } }));
+  };
   pages.overview = () => {
     const a = cur(), p = prev(), ms = periodMonths().cur;
     const flags = flagged(ms), latestAny = flagged()[0];
@@ -197,7 +232,7 @@
         `<div class="insight" data-go="insights"><span style="color:${C.amber}">${ic('bulb')}</span><div><b>Potential saving</b>Investigate cooling system performance at ${[...new Set(flags.map(f => f.site))].join(', ')}. Excess cooling vs. model: ${excess.toFixed(0)} MWh (${(excess / a.total * 100).toFixed(2)}% of total energy), about ${nokM(flags.reduce((t, r) => t + excessNOK(r), 0))} at the spot index.</div></div>`
       : `<div class="insight"><span style="color:${C.green}">${ic('check')}</span><div><b>No cooling review flags in this period</b>All site-months are within ±${THRESH * 100}% of expected cooling.</div></div>` +
         (latestAny ? insightCard(latestAny) : '');
-    app.innerHTML = head('Overview', `Energy performance across all sites · ${rangeLabel()} ${badge()}`, periodSelect()) + execSummary(a, flags) + `
+    app.innerHTML = head('Overview', `Energy performance across all sites · ${rangeLabel()} ${badge()}`, periodSelect()) + `
       <div class="grid g4">
         ${kpi('Average PUE', a.pue.toFixed(3), delta(a.pue, p?.pue, true))}
         ${kpi('Total Energy', gwh(a.total), delta(a.total, p?.total))}
@@ -731,6 +766,7 @@
   const T12 = `${(THRESH * 100).toFixed(0)}%`, TGT = PUE_TARGET.toFixed(2);
   const e = (title, what, basis, read) => ({ title, what, basis, read });
   const PAGE_INFO = {
+    home: e('Home', 'The front page: what the platform is for, the most important numbers right now, and where to go next.', 'The same data as the rest of the dashboard, for the selected period.', 'Click a number or a tile to open that part of the dashboard.'),
     overview: e('Overview', 'A one-page summary of how all Bulk data centres are performing: efficiency (PUE), energy use, cooling, estimated cost and the latest AI flags.', 'All sites combined for the period chosen in the top-right menu. Operating figures come from the project workbook and are synthetic.', 'Start here, then open Sites, Energy & Cost or AI Insights for detail. Click ⓘ on any card for an explanation.'),
     sites: e('Sites', 'A closer look at one data centre at a time.', 'Monthly data for the chosen site and period.', 'Choose the data centre with the buttons under the title. The tabs show performance, the energy breakdown, cost and prices, and the AI analysis for that site.'),
     energy: e('Energy & Cost', 'How much electricity all sites use each month and what it would cost at market prices.', 'Monthly energy per site × the market price index for each site\'s price zone.', 'Use it to see whether cost changes come from using more energy or from price movements.'),
@@ -744,7 +780,9 @@
   };
   const INFO = [
     // Overview
-    [/^overview\|about this platform/, e('About this platform', 'A short introduction to what the dashboard is for, plus the key numbers for the selected period.', 'The same data as the cards below.', 'The bullet points update when you change the period.')],
+    [/^home\|welcome/, e('About this platform', 'What Bulk Energy Intelligence is and who it is for.', 'A prototype built on the project workbook.', 'Go to the Overview for the full numbers, or ask the Copilot a question in plain language.')],
+    [/^home\|right now/, e('Right now', 'The few numbers that matter most for the selected period.', 'PUE = total ÷ IT energy; energy and estimated cost for all sites; cooling flags from the AI model; N01 load vs. its reported capacity.', 'Click a number to open the page with the details. The period follows the period menu on the Overview.')],
+    [/^home\|where to start/, e('Where to start', 'Shortcuts to each part of the dashboard, with a one-line description.', '', 'Click a tile to open it.')],
     [/^overview\|average pue/, e('Average PUE (Power Usage Effectiveness)', 'How efficiently the data centres use electricity. PUE = total energy ÷ energy used by the IT equipment (servers, storage, network). 1.00 would mean every kWh goes to IT. 1.20 means 0.20 kWh extra for cooling, power losses and lighting for every kWh of IT.', 'Total facility MWh ÷ IT MWh for all sites in the selected period, weighted by energy.', `Lower is better. Bulk's design target for new builds is max. ${TGT}. The arrow compares with the previous comparable period: green = improvement, red = worse.`)],
     [/^overview\|energy consumption by site/, e('Energy consumption by site', 'How much electricity each data centre used in the selected period, split into what it was used for.', 'Monthly energy per site, summed over the period, in GWh (1 GWh = 1,000 MWh).', 'Purple = IT (customer servers), blue = cooling, grey = other overhead such as power losses and lighting. A taller bar means more energy. A larger blue and grey part relative to the purple means a higher (worse) PUE.')],
     [/^overview\|ai insights/, e('AI insights', `Automatic flags for months where cooling energy was more than ${T12} above what the model expected.`, 'Expected cooling = IT energy × (0.115 + 0.0055 × degrees above 8 °C + site adjustment). This is a simple, transparent formula, not a trained machine-learning model.', 'Click a flag to open AI Insights. "Potential saving" adds up the excess cooling in the flagged months. A flag points to where to look; engineers must confirm the cause.')],
@@ -1242,13 +1280,13 @@
 
   /* ---------- router & events ---------- */
   // On phones the app shows only the core pages; the computer dashboard keeps all pages.
-  const PHONE_PAGES = ['overview', 'sites', 'energy', 'insights'];
+  const PHONE_PAGES = ['home', 'overview', 'sites', 'energy', 'insights'];
   const phoneMQ = matchMedia('(max-width: 640px)');
   phoneMQ.addEventListener('change', () => render());
   function render() {
     charts.forEach(c => c.destroy()); charts = [];
-    const page = (location.hash || '#overview').slice(1);
-    let key = pages[page] ? page : 'overview';
+    const page = (location.hash || '#home').slice(1);
+    let key = pages[page] ? page : 'home';
     if (phoneMQ.matches && key === 'copilot') { history.replaceState(null, '', '#overview'); key = 'overview'; setTimeout(() => openCp(), 0); }
     else if (phoneMQ.matches && !PHONE_PAGES.includes(key)) { key = 'overview'; history.replaceState(null, '', '#overview'); }
     document.body.classList.toggle('on-copilot', key === 'copilot');

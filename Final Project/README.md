@@ -39,7 +39,7 @@ Uploads are stored only in your browser. Each one can be removed, or you can **R
 
 ## Help, labels and navigation
 - **Info buttons (ⓘ):** every card and every menu item has an ⓘ. Hover over it or click it to see what the number means, what it is based on and how to read the chart. The ⓘ next to each page title explains the page.
-- **Executive summary:** the Overview starts with "About this platform", a short introduction and the key numbers for the selected period.
+- **Front page (Home):** the app opens on a front page with the platform description, the most important numbers right now (PUE, energy and cost, cooling flags, N01 capacity), shortcuts to every section and a "Go to Overview" button. Click the Bulk logo or **Home** in the menu to return. On the phone the description is one sentence and only the phone pages are shown. The Overview now starts directly with the numbers.
 - **Confidential:** every page title has a Confidential badge, and the printed reports are marked confidential.
 - **Data centre picker:** on Sites and AI Insights, choose the data centre with the buttons under the title.
 - **Verne:** Verne Iceland and Verne Finland are combined into one competitor (simple average 1.295, because per-site energy is not published).
