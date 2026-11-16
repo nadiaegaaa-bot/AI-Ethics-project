@@ -1176,7 +1176,7 @@
   state.cpMode = store.get('cpMode', 'simple');
   const applyMode = () => { document.body.classList.toggle('cpm-detailed', state.cpMode === 'detailed'); document.querySelectorAll('[data-cp-mode]').forEach(b => b.classList.toggle('on', b.dataset.cpMode === state.cpMode)); };
   const modeToggle = () => `<div class="cp-mode" role="group" aria-label="Answer style"><button type="button" data-cp-mode="simple" title="Short answers in plain language">Simple</button><button type="button" data-cp-mode="detailed" title="All numbers, explanations and next steps">Detailed</button></div>`;
-  document.addEventListener('click', e => { const b = e.target.closest('[data-cp-mode]'); if (b) { state.cpMode = b.dataset.cpMode; store.set('cpMode', state.cpMode); applyMode(); } });
+  document.addEventListener('click', e => { const b = e.target.closest('[data-cp-mode]'); if (b) { ['cp-log', 'cpp-log'].forEach(id => document.getElementById(id)?._finish?.()); state.cpMode = b.dataset.cpMode; store.set('cpMode', state.cpMode); applyMode(); } });
 
   // UI
   document.body.insertAdjacentHTML('beforeend', `
@@ -1204,20 +1204,60 @@
   window.addEventListener('popstate', () => closeCp(true));
   backdrop.addEventListener('click', () => closeCp());
   document.getElementById('cp-grab').addEventListener('click', () => closeCp());
+  // Chat feel: a short "thinking" phase with honest status messages, then the answer is typed out word by word.
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+  const STATUS = {
+    data: ['Reading your question…', 'Looking up the workbook data…', 'Calculating with the dashboard formulas…', 'Separating observations from possible explanations…', 'Writing the answer…'],
+    nav: ['Reading your question…', 'Checking the menu…', 'Writing the answer…'],
+    plain: ['Reading your question…', 'Looking it up…', 'Writing the answer…'],
+  };
+  function streamIn(msgEl, logEl, done) {
+    const body = msgEl.querySelector('.cp-body');
+    const later = [...body.querySelectorAll('.cp-links, .cp-basis, .cp-terms, .cp-more, .cp-sugs')];
+    later.forEach(el => el.classList.add('cp-pending'));
+    const walker = document.createTreeWalker(body, NodeFilter.SHOW_TEXT, { acceptNode: n => n.textContent.trim() && n.parentElement.offsetParent !== null && !n.parentElement.closest('.cp-pending') ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT });
+    const nodes = []; while (walker.nextNode()) nodes.push(walker.currentNode);
+    const parts = nodes.map(n => { const words = n.textContent.split(/(\s+)/); n.textContent = ''; return { n, words }; });
+    const total = parts.reduce((t, x) => t + x.words.length, 0), tick = 30;
+    const perTick = Math.max(1, Math.ceil(total / (Math.min(3400, Math.max(700, total * 18)) / tick)));
+    let pi = 0, wi = 0, timer = null;
+    const finish = () => {
+      clearInterval(timer); parts.forEach(x => { x.n.textContent = x.words.join(''); });
+      later.forEach(el => el.classList.remove('cp-pending')); msgEl.classList.remove('streaming'); logEl._finish = null; done();
+    };
+    logEl._finish = finish; msgEl.classList.add('streaming');
+    if (!parts.length) { finish(); return; }
+    timer = setInterval(() => {
+      for (let k = 0; k < perTick && pi < parts.length; k++) { const x = parts[pi]; x.n.textContent += x.words[wi++]; if (wi >= x.words.length) { pi++; wi = 0; } }
+      if (pi >= parts.length) finish();
+    }, tick);
+  }
   function askInto(logEl, inputEl, q, opts = {}) {
     q = String(q || '').trim(); if (!q) return;
+    if (logEl._pending) { clearTimeout(logEl._pending.t); logEl._pending.run(); }
+    logEl._finish?.();
     logEl.querySelectorAll(':scope > .cp-sugs').forEach(el => el.remove());
-    logEl.insertAdjacentHTML('beforeend', `<div class="cp-msg me"><div class="cp-body">${esc(q)}</div></div><div class="cp-msg bot typing"><span class="cp-av">${ic('bot', 16)}</span><div class="cp-body"><i></i><i></i><i></i></div></div>`);
+    logEl.insertAdjacentHTML('beforeend', `<div class="cp-msg me"><div class="cp-body">${esc(q)}</div></div><div class="cp-msg bot typing" aria-live="polite"><span class="cp-av">${ic('bot', 16)}</span><div class="cp-body"><span class="cp-dots"><i></i><i></i><i></i></span><span class="cp-status">Reading your question…</span></div></div>`);
     logEl.scrollTop = logEl.scrollHeight; if (inputEl) inputEl.value = '';
-    setTimeout(() => {
-      logEl.querySelector('.typing')?.remove();
-      let html; try { html = renderAnswer(respond(q)); } catch (err) { console.error(err); html = renderAnswer({ plain: true, title: 'Something went wrong', short: 'I could not calculate an answer from the current data.' }); }
+    let a; try { a = respond(q); } catch (err) { console.error(err); a = { plain: true, title: 'Something went wrong', short: 'I could not calculate an answer from the current data.' }; }
+    const html = renderAnswer(a), len = html.replace(/<[^>]+>/g, ' ').split(/\s+/).length;
+    const kind = /Using the (app|dashboard)|Where to find it|computer dashboard|organised/.test(a.title || '') ? 'nav' : a.plain ? 'plain' : 'data';
+    const statuses = STATUS[kind];
+    const think = reduceMotion.matches ? 150 : 900 + Math.min(1900, len * 6) + Math.random() * 600;
+    const typingEl = logEl.querySelector('.cp-msg.typing'), statusEl = typingEl.querySelector('.cp-status');
+    let si = 0; const sTimer = setInterval(() => { si = Math.min(si + 1, statuses.length - 1); statusEl.textContent = statuses[si]; }, think / statuses.length);
+    const run = () => {
+      logEl._pending = null; clearInterval(sTimer); typingEl.remove();
       logEl.insertAdjacentHTML('beforeend', html);
       const msgs = logEl.querySelectorAll('.cp-msg.bot'), lastMsg = msgs[msgs.length - 1];
       logEl.scrollTop = lastMsg.offsetTop - logEl.offsetTop - 8;
-      if (opts.followups && logEl.querySelectorAll('.cp-msg.me').length === 1) logEl.insertAdjacentHTML('beforeend', `<div class="cp-sugs">${(isPhoneNow() ? PHONE_MORE : MORE).concat(SUGGESTIONS.filter(x => x !== q)).slice(0, 4).map(x => `<button class="cp-sug" data-cp-q="${esc(x)}">${esc(x)}</button>`).join('')}</div>`);
-      opts.done?.();
-    }, 420);
+      const after = () => {
+        if (opts.followups && logEl.querySelectorAll('.cp-msg.me').length === 1) logEl.insertAdjacentHTML('beforeend', `<div class="cp-sugs">${(isPhoneNow() ? PHONE_MORE : MORE).concat(SUGGESTIONS.filter(x => x !== q)).slice(0, 4).map(x => `<button class="cp-sug" data-cp-q="${esc(x)}">${esc(x)}</button>`).join('')}</div>`);
+        opts.done?.();
+      };
+      if (reduceMotion.matches) after(); else streamIn(lastMsg, logEl, after);
+    };
+    logEl._pending = { t: setTimeout(run, think), run };
   }
   const ask = q => askInto(log, qin, q, { followups: true });
   fab.addEventListener('click', () => (panel.hidden ? openCp() : closeCp()));

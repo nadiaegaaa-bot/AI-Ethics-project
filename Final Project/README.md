@@ -50,6 +50,7 @@ Uploads are stored only in your browser. Each one can be removed, or you can **R
 - **Phone:** the round button opens the Copilot as a bottom sheet.
 - **For everyone:** **Simple** gives a short plain-language answer, with key terms explained and the numbers one click away. **Detailed** shows all observations, possible explanations, next steps and the basis. It can explain terms ("What is PUE?", "MW vs. MWh"), answer specific questions ("What was cooling at N01 in June 2026?", "When will N01 reach 80% of capacity?", "Which site has the best PUE?", "How is expected cooling calculated?", "Tell me about DK01", "How do I reduce cooling?"), and analyse cooling, savings, capacity, peers and cost.
 - **Navigation help:** ask "Where can I compare competitors?", "How do I upload new data?" or "Where is Capacity?". On the computer it points to the left menu; on the phone it points to the bottom bar and says when a feature is only on the computer.
+- **Chat feel:** before answering, the Copilot shows a short "thinking" phase (1–3.5 s) with status messages describing what it actually does (reading the question, looking up the data, calculating), then types the answer out word by word. Sending a new question or switching Simple/Detailed shows the current answer at once. Users with "reduce motion" turned on get instant answers.
 - Answers are calculated in the browser from the loaded data with the dashboard's formulas. **No external AI service is used.** The chosen site or period applies unless the question names another one.
 
 ## Phone app vs. computer dashboard
