@@ -67,7 +67,7 @@
     set: (k, v) => localStorage.setItem('bulk2.' + k, JSON.stringify(v)),
   };
   const state = { period: store.get('period', 'ytd'), site: 'N01', siteTab: 'performance', benchTab: 'reported', dataTab: 'facts' };
-  let charts = [];
+  let charts = [], cleanups = [];
 
   Chart.defaults.color = C.muted;
   Chart.defaults.font.family = 'Manrope, system-ui, sans-serif';
@@ -329,7 +329,216 @@
   };
 
   const ACTIONS = ['Check cooling system performance (setpoints, pumps, condenser)', 'Review recent maintenance events', 'Compare with other sites', 'Validate the reading against permissioned metering before acting'];
+  /* ---------- AI Insights: 3D site view (own canvas renderer, technical-drawing style) ---------- */
+  state.insTab = 'analysis';
+  const insTabs = () => tabs('insTab', [['analysis', 'Anomaly analysis'], ['3d', '3D site view']]);
+  const DC_LAYOUT = { 'N01': { halls: 2, rows: 4, racks: 10, crah: 3, chill: 4 }, 'OS-IX': { halls: 1, rows: 3, racks: 8, crah: 3, chill: 2 }, 'DK01': { halls: 1, rows: 4, racks: 9, crah: 3, chill: 3 } };
+  const view3d = { yaw: -0.65, pitch: 0.55, zoom: 1.45, auto: true, labels: true };
+
+  function buildModel(site, coolRed, rackRed) {
+    const L = DC_LAYOUT[site] || { halls: 1, rows: 3, racks: 8, crah: 3, chill: 2 };
+    const rw = 0.8, rd = 1.2, rh = 2.2, aisle = 1.5, H = 5;
+    const rowLen = L.racks * rw, hallW = rowLen + 4, hallD = L.rows * (rd + aisle) + 3.5, elecW = 5;
+    const BW = L.halls * hallW + elecW, x0 = -BW / 2, z0 = -hallD / 2;
+    const faces = [], pipes = [], labels = [], decals = [], edges = [];
+    const box = (a, b, c, d, e, f, style, red, det) => {
+      const P = [[a, b, f], [d, b, f], [d, e, f], [a, e, f]], Q = [[d, b, c], [a, b, c], [a, e, c], [d, e, c]];
+      const list = [[P, [0, 0, 1], det?.front], [Q, [0, 0, -1], det?.front],
+        [[[d, b, f], [d, b, c], [d, e, c], [d, e, f]], [1, 0, 0], det?.side], [[[a, b, c], [a, b, f], [a, e, f], [a, e, c]], [-1, 0, 0], det?.side],
+        [[[a, e, f], [d, e, f], [d, e, c], [a, e, c]], [0, 1, 0], det?.top], [[[a, b, c], [d, b, c], [d, b, f], [a, b, f]], [0, -1, 0], null]];
+      list.forEach(([v, n, dt]) => faces.push({ v, n, style, red, det: dt, ground: style === 'ground' }));
+    };
+    // ground slab with grid
+    const gx = BW / 2 + 8, gz = hallD / 2 + 7;
+    box(-gx, -0.35, -gz, gx, 0, gz, 'ground');
+    // building shell (drawn as edges only)
+    const sh = [[x0, 0, z0], [-x0, 0, z0], [-x0, 0, -z0], [x0, 0, -z0]];
+    for (let i = 0; i < 4; i++) { const p = sh[i], q = sh[(i + 1) % 4]; edges.push([p, q], [[p[0], H, p[2]], [q[0], H, q[2]]], [p, [p[0], H, p[2]]]); }
+    for (let h = 1; h <= L.halls; h++) { const x = x0 + h * hallW; edges.push([[x, 0, z0], [x, H, z0]], [[x, 0, -z0], [x, H, -z0]], [[x, H, z0], [x, H, -z0]], [[x, 0, z0], [x, 0, -z0]]); }
+    for (let h = 0; h < L.halls; h++) {
+      const ox = x0 + h * hallW;
+      for (let r = 0; r < L.rows; r++) {
+        const z = z0 + 3 + r * (rd + aisle);
+        for (let k = 0; k < L.racks; k++) { const x = ox + 2 + k * rw; box(x + 0.02, 0, z, x + rw - 0.02, rh, z + rd, 'rack', rackRed, { front: 'rack' }); }
+        if (r % 2 === 0 && r + 1 < L.rows) decals.push({ v: [[ox + 2, 0.02, z + rd], [ox + 2 + rowLen, 0.02, z + rd], [ox + 2 + rowLen, 0.02, z + rd + aisle], [ox + 2, 0.02, z + rd + aisle]], kind: 'aisle' });
+      }
+      for (let c = 0; c < L.crah; c++) {
+        const cw = 1.8, gap = (hallW - L.crah * cw) / (L.crah + 1), x = ox + gap + c * (cw + gap);
+        box(x, 0, z0 + 0.3, x + cw, 2.3, z0 + 1.2, 'cool', coolRed, { front: 'grille', top: 'grille' });
+        pipes.push([[x + cw / 2, 2.3, z0 + 0.75], [x + cw / 2, H - 0.4, z0 + 0.75], [x + cw / 2, H - 0.4, 0], [x + cw / 2, H, 0]]);
+      }
+      labels.push({ p: [ox + hallW / 2, rh + 0.3, 0], t: L.halls > 1 ? `Server hall ${'AB'[h]}` : 'Server hall', red: rackRed });
+      if (h === 0) labels.push({ p: [ox + hallW / 2, 2.4, z0 + 0.8], t: 'Cooling units (CRAH)', red: coolRed });
+      if (coolRed) decals.push({ v: [[ox + 0.4, 0.03, z0 + 0.3], [ox + hallW - 0.4, 0.03, z0 + 0.3], [ox + hallW - 0.4, 0.03, -z0 - 0.3], [ox + 0.4, 0.03, -z0 - 0.3]], kind: 'heat' });
+    }
+    // roof chillers
+    const span = L.halls * hallW, cwid = 2.6;
+    for (let c = 0; c < L.chill; c++) { const x = x0 + (c + 0.5) * span / L.chill - cwid / 2; box(x, H, -1.1, x + cwid, H + 1.6, 1.1, 'chill', coolRed, { top: 'fan', side: 'grille', front: 'grille' }); }
+    labels.push({ p: [x0 + span / 2, H + 1.7, 0], t: 'Chillers (roof)', red: coolRed });
+    // electrical room, UPS, outdoor power
+    const ex = x0 + L.halls * hallW;
+    box(ex + 0.8, 0, z0 + 1, ex + 2.2, 1.9, z0 + 3.2, 'power'); box(ex + 2.8, 0, z0 + 1, ex + 4.2, 1.9, z0 + 3.2, 'power');
+    labels.push({ p: [ex + elecW / 2, 2, z0 + 2], t: 'UPS / electrical room' });
+    const px = -x0 + 1.8;
+    box(px, 0, -4, px + 1.8, 2, -2.2, 'power', false, { side: 'grille' }); box(px, 0, -1.2, px + 1.8, 2, 0.6, 'power', false, { side: 'grille' });
+    box(px, 0, 1.8, px + 3.2, 2.1, 3.4, 'gen', false, { side: 'grille' }); box(px, 0, 4.2, px + 3.2, 2.1, 5.8, 'gen', false, { side: 'grille' });
+    labels.push({ p: [px + 1.4, 2.2, 0.8], t: 'Transformers & generators' });
+    box(-3, 0, -z0 + 0.6, 3, 3, -z0 + 3.6, 'office', false, { front: 'windows' });
+    labels.push({ p: [0, 3.1, -z0 + 2.1], t: 'Office & entrance' });
+    return { faces, pipes, labels, decals, edges, H, R: Math.hypot(gx, gz) };
+  }
+
+  function mount3d(canvas, model, onRedClick) {
+    const ctx = canvas.getContext('2d'), wrap = canvas.parentElement;
+    let W = 0, Hh = 0, dpr = 1, raf = 0, vx = 0, vy = 0, drag = null, moved = 0, redPolys = [], idle = 0;
+    const pts = new Map();
+    const BASE = { rack: [72, 98, 168], cool: [56, 138, 186], chill: [70, 150, 196], power: [150, 128, 78], gen: [120, 110, 90], office: [86, 96, 128], ground: [24, 32, 58] };
+    const L = (() => { const v = [-0.45, 0.75, 0.5], m = Math.hypot(...v); return v.map(x => x / m); })();
+    const resize = () => { dpr = Math.min(2, devicePixelRatio || 1); W = wrap.clientWidth; Hh = wrap.clientHeight; canvas.width = W * dpr; canvas.height = Hh * dpr; canvas.style.width = W + 'px'; canvas.style.height = Hh + 'px'; };
+    const ro = new ResizeObserver(resize); ro.observe(wrap); resize();
+    const frame = t => {
+      raf = requestAnimationFrame(frame);
+      if (!drag) { if (view3d.auto && idle <= 0) view3d.yaw += 0.0035; view3d.yaw += vx; view3d.pitch += vy; vx *= 0.94; vy *= 0.94; if (Math.abs(vx) < 1e-5) vx = 0; if (Math.abs(vy) < 1e-5) vy = 0; idle--; }
+      draw(t || 0);
+    };
+    function draw(t) {
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const g = ctx.createLinearGradient(0, 0, 0, Hh); g.addColorStop(0, '#111a33'); g.addColorStop(1, '#0a0f1f'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, Hh);
+      ctx.strokeStyle = 'rgba(140,170,255,0.05)'; ctx.lineWidth = 1; ctx.beginPath();
+      for (let x = 0; x < W; x += 24) { ctx.moveTo(x + 0.5, 0); ctx.lineTo(x + 0.5, Hh); } for (let y = 0; y < Hh; y += 24) { ctx.moveTo(0, y + 0.5); ctx.lineTo(W, y + 0.5); } ctx.stroke();
+      const cy = Math.cos(view3d.yaw), sy = Math.sin(view3d.yaw), cp = Math.cos(view3d.pitch), sp = Math.sin(view3d.pitch);
+      const dist = model.R * 3.1, F = Math.min(W, Hh) * 0.5 * dist / model.R * 0.92 * view3d.zoom, cx = W / 2, cyS = Hh / 2 + 10;
+      const rot = ([x, y, z]) => { const x1 = x * cy + z * sy, z1 = -x * sy + z * cy; return [x1, y * cp - z1 * sp, y * sp + z1 * cp]; };
+      const P = ([x, y, z]) => { const [a, b, c] = rot([x, y - model.H / 2, z]); const d = dist - c; return [cx + F * a / d, cyS - F * b / d, d]; };
+      const pulse = 0.5 + 0.5 * Math.sin(t / 380);
+      const groundTop = sp > 0;
+      const prepared = [];
+      for (const f of model.faces) {
+        const s = f.v.map(P); let area = 0;
+        for (let i = 0; i < 4; i++) { const a = s[i], b = s[(i + 1) % 4]; area += a[0] * b[1] - b[0] * a[1]; }
+        if (area >= 0) continue;
+        const n = rot(f.n), lit = 0.32 + 0.68 * Math.max(0, n[0] * L[0] + n[1] * L[1] + n[2] * L[2]);
+        prepared.push({ f, s, lit, d: s.reduce((t2, p) => t2 + p[2], 0) / 4 });
+      }
+      const ground = prepared.filter(x => x.f.ground), rest = prepared.filter(x => !x.f.ground).sort((a, b) => b.d - a.d);
+      const poly = (s, fill, stroke, lw = 0.8) => { ctx.beginPath(); ctx.moveTo(s[0][0], s[0][1]); for (let i = 1; i < s.length; i++) ctx.lineTo(s[i][0], s[i][1]); ctx.closePath(); if (fill) { ctx.fillStyle = fill; ctx.fill(); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); } };
+      const lerp = (a, b, k) => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k];
+      const drawFace = ({ f, s, lit }, alpha = 0.94) => {
+        const red = f.red, c = red ? [214, 58, 64] : BASE[f.style];
+        const k = red ? 0.75 + 0.25 * pulse : 1;
+        poly(s, `rgba(${c.map(v => Math.round(v * lit * k)).join(',')},${alpha})`, red ? `rgba(255,150,150,${0.7 + 0.3 * pulse})` : 'rgba(188,212,255,0.55)', red ? 1.2 : 0.8);
+        if (f.det) {
+          ctx.strokeStyle = red ? 'rgba(255,200,200,0.55)' : 'rgba(188,212,255,0.32)'; ctx.lineWidth = 0.7; ctx.beginPath();
+          if (f.det === 'rack') for (let i = 1; i < 8; i++) { const a = lerp(s[0], s[3], i / 8), b = lerp(s[1], s[2], i / 8); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); }
+          else if (f.det === 'grille') for (let i = 1; i < 6; i++) { const a = lerp(s[0], s[1], i / 6), b = lerp(s[3], s[2], i / 6); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); }
+          else if (f.det === 'windows') for (let i = 1; i < 5; i++) { const a = lerp(lerp(s[0], s[3], 0.45), lerp(s[1], s[2], 0.45), i / 5 - 0.07), b = lerp(lerp(s[0], s[3], 0.8), lerp(s[1], s[2], 0.8), i / 5 - 0.07), c2 = lerp(lerp(s[0], s[3], 0.8), lerp(s[1], s[2], 0.8), i / 5 + 0.07), d2 = lerp(lerp(s[0], s[3], 0.45), lerp(s[1], s[2], 0.45), i / 5 + 0.07); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.lineTo(c2[0], c2[1]); ctx.lineTo(d2[0], d2[1]); ctx.closePath(); }
+          else if (f.det === 'fan') for (const k2 of [0.3, 0.7]) { const m = lerp(lerp(s[0], s[3], 0.5), lerp(s[1], s[2], 0.5), k2), u = lerp(s[0], s[1], 0.14), u0 = s[0], v = lerp(s[0], s[3], 0.32); ctx.moveTo(m[0] + (u[0] - u0[0]) + (v[0] - u0[0]) * 0, m[1]); ctx.ellipse(m[0], m[1], Math.max(2, Math.hypot(u[0] - u0[0], u[1] - u0[1])), Math.max(1.5, Math.hypot(v[0] - u0[0], v[1] - u0[1]) * 0.5), Math.atan2(u[1] - u0[1], u[0] - u0[0]), 0, Math.PI * 2); }
+          ctx.stroke();
+        }
+        if (red) redPolys.push(s);
+      };
+      const drawGround = alpha => {
+        ground.forEach(x => drawFace(x, alpha));
+        if (!groundTop) return;
+        ctx.strokeStyle = 'rgba(140,170,255,0.10)'; ctx.lineWidth = 0.6; ctx.beginPath();
+        const top = model.faces.find(f => f.ground && f.n[1] === 1).v, [a, b, , d] = top;
+        for (let i = 1; i < 16; i++) { const k = i / 16, p = P([a[0] + (b[0] - a[0]) * k, 0.01, a[2]]), q = P([a[0] + (b[0] - a[0]) * k, 0.01, d[2]]); ctx.moveTo(p[0], p[1]); ctx.lineTo(q[0], q[1]); const r = P([a[0], 0.01, a[2] + (d[2] - a[2]) * k]), s2 = P([b[0], 0.01, a[2] + (d[2] - a[2]) * k]); ctx.moveTo(r[0], r[1]); ctx.lineTo(s2[0], s2[1]); }
+        ctx.stroke();
+        model.decals.forEach(dc => { const s = dc.v.map(P); if (dc.kind === 'heat') { poly(s, `rgba(255,60,70,${0.16 + 0.16 * pulse})`, `rgba(255,110,110,${0.5 + 0.4 * pulse})`, 1.4); redPolys.push(s); } else poly(s, 'rgba(90,170,255,0.10)', null); });
+      };
+      redPolys = [];
+      // shell edges behind the model first, the rest after
+      const edgeD = model.edges.map(([p, q]) => { const a = P(p), b = P(q); return { a, b, d: (a[2] + b[2]) / 2 }; });
+      const midD = dist;
+      const drawEdges = list => { ctx.setLineDash([5, 4]); ctx.strokeStyle = 'rgba(188,212,255,0.45)'; ctx.lineWidth = 1; ctx.beginPath(); list.forEach(e => { ctx.moveTo(e.a[0], e.a[1]); ctx.lineTo(e.b[0], e.b[1]); }); ctx.stroke(); ctx.setLineDash([]); };
+      if (groundTop) drawGround(0.97);
+      drawEdges(edgeD.filter(e => e.d > midD));
+      rest.forEach(x => drawFace(x));
+      ctx.lineWidth = 1.6; model.pipes.forEach(pl => { const s = pl.map(P); ctx.strokeStyle = model.faces.find(f => f.style === 'cool')?.red ? `rgba(255,110,110,${0.6 + 0.4 * pulse})` : 'rgba(110,200,255,0.75)'; ctx.beginPath(); ctx.moveTo(s[0][0], s[0][1]); s.slice(1).forEach(p => ctx.lineTo(p[0], p[1])); ctx.stroke(); });
+      drawEdges(edgeD.filter(e => e.d <= midD));
+      if (!groundTop) drawGround(0.35);
+      if (view3d.labels) {
+        ctx.font = '600 11px Manrope, system-ui, sans-serif';
+        const placed = [];
+        model.labels.map(lb => { const [x, y] = P(lb.p); return { lb, x, y, w: ctx.measureText(lb.t).width + 14 }; }).sort((a, b) => a.y - b.y).forEach(o => {
+          let ty = o.y - 30, tries = 0;
+          const hit = () => placed.some(q => Math.abs(q.x - o.x) < (q.w + o.w) / 2 + 4 && Math.abs(q.ty - ty) < 20);
+          while (hit() && tries++ < 8) ty -= 21;
+          o.ty = ty; placed.push(o);
+        });
+        placed.forEach(({ lb, x, y, w, ty }) => {
+          ctx.strokeStyle = lb.red ? '#ff8f8f' : 'rgba(188,212,255,0.7)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, ty + 9); ctx.stroke();
+          ctx.fillStyle = lb.red ? '#ff8f8f' : '#bcd4ff'; ctx.beginPath(); ctx.arc(x, y, 2.4, 0, 7); ctx.fill();
+          ctx.fillStyle = lb.red ? 'rgba(90,18,24,0.94)' : 'rgba(14,20,40,0.9)'; ctx.fillRect(x - w / 2, ty - 9, w, 18); ctx.strokeRect(x - w / 2 + 0.5, ty - 8.5, w - 1, 17);
+          ctx.fillStyle = lb.red ? '#ffd0d0' : '#dbe6ff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(lb.t, x, ty + 0.5);
+        });
+      }
+      // drawing title block
+      ctx.font = '600 10px Manrope, system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+      const tb = W < 520 ? model.title.slice(0, 1) : model.title, tw = Math.max(...tb.map(x => ctx.measureText(x).width)) + 16;
+      ctx.strokeStyle = 'rgba(188,212,255,0.4)'; ctx.fillStyle = 'rgba(10,15,31,0.85)'; ctx.fillRect(W - tw - 12, Hh - 16 * tb.length - 18, tw, 16 * tb.length + 8); ctx.strokeRect(W - tw - 11.5, Hh - 16 * tb.length - 17.5, tw - 1, 16 * tb.length + 7);
+      tb.forEach((x, i) => { ctx.fillStyle = i === 0 ? '#dbe6ff' : 'rgba(188,212,255,0.65)'; ctx.fillText(x, W - tw - 4, Hh - 16 * tb.length - 4 + i * 16); });
+      // orientation gizmo
+      const gz0 = [42, Hh - 42]; [[[1, 0, 0], 'x', '#ff8a8a'], [[0, 1, 0], 'y', '#8affb0'], [[0, 0, 1], 'z', '#8ab8ff']].forEach(([v, n, c]) => { const r = rot(v); ctx.strokeStyle = c; ctx.fillStyle = c; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(gz0[0], gz0[1]); ctx.lineTo(gz0[0] + r[0] * 22, gz0[1] - r[1] * 22); ctx.stroke(); ctx.fillText(n, gz0[0] + r[0] * 28 - 3, gz0[1] - r[1] * 28 + 3); });
+    }
+    const inside = (p, s) => { let c = false; for (let i = 0, j = s.length - 1; i < s.length; j = i++) { if ((s[i][1] > p[1]) !== (s[j][1] > p[1]) && p[0] < (s[j][0] - s[i][0]) * (p[1] - s[i][1]) / (s[j][1] - s[i][1]) + s[i][0]) c = !c; } return c; };
+    const local = e => { const r = canvas.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+    const onDown = e => { canvas.setPointerCapture(e.pointerId); pts.set(e.pointerId, local(e)); drag = { x: e.clientX, y: e.clientY }; moved = 0; vx = vy = 0; view3d.auto = false; syncBtns(); canvas.classList.add('grabbing'); };
+    const onMove = e => {
+      const p = local(e);
+      if (!drag) { canvas.style.cursor = redPolys.some(s => inside(p, s)) ? 'pointer' : 'grab'; return; }
+      if (pts.size === 2 && pts.has(e.pointerId)) { const [a, b] = [...pts.values()], d0 = Math.hypot(a[0] - b[0], a[1] - b[1]); pts.set(e.pointerId, p); const [c, d] = [...pts.values()], d1 = Math.hypot(c[0] - d[0], c[1] - d[1]); if (d0 > 0) view3d.zoom = Math.min(3, Math.max(0.5, view3d.zoom * d1 / d0)); moved += 10; return; }
+      pts.set(e.pointerId, p);
+      const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag = { x: e.clientX, y: e.clientY }; moved += Math.abs(dx) + Math.abs(dy);
+      vx = dx * 0.009; vy = dy * 0.009; view3d.yaw += vx; view3d.pitch += vy;
+    };
+    const onUp = e => { pts.delete(e.pointerId); if (pts.size) return; canvas.classList.remove('grabbing'); const wasClick = moved < 6; drag = null; idle = 180; if (wasClick) { vx = vy = 0; const p = local(e); if (redPolys.some(s => inside(p, s))) onRedClick(); } };
+    const onWheel = e => { e.preventDefault(); view3d.zoom = Math.min(3, Math.max(0.5, view3d.zoom * Math.exp(-e.deltaY * 0.0015))); };
+    const onKey = e => { const k = { ArrowLeft: [-0.15, 0], ArrowRight: [0.15, 0], ArrowUp: [0, -0.15], ArrowDown: [0, 0.15] }[e.key]; if (k) { e.preventDefault(); view3d.yaw += k[0]; view3d.pitch += k[1]; view3d.auto = false; syncBtns(); } else if (e.key === '+' || e.key === '=') view3d.zoom = Math.min(3, view3d.zoom * 1.15); else if (e.key === '-') view3d.zoom = Math.max(0.5, view3d.zoom / 1.15); else if (e.key === '0') reset(); };
+    const reset = () => { view3d.yaw = -0.65; view3d.pitch = 0.55; view3d.zoom = 1.45; vx = vy = 0; };
+    const syncBtns = () => { document.querySelectorAll('[data-v3]').forEach(b => { if (b.dataset.v3 === 'auto') b.classList.toggle('on', view3d.auto); if (b.dataset.v3 === 'labels') b.classList.toggle('on', view3d.labels); }); };
+    canvas.addEventListener('pointerdown', onDown); canvas.addEventListener('pointermove', onMove); canvas.addEventListener('pointerup', onUp); canvas.addEventListener('pointercancel', onUp);
+    canvas.addEventListener('wheel', onWheel, { passive: false }); canvas.addEventListener('keydown', onKey); canvas.addEventListener('dblclick', reset);
+    const onBtn = e => { const b = e.target.closest('[data-v3]'); if (!b) return; const a = b.dataset.v3; if (a === 'reset') reset(); if (a === 'auto') view3d.auto = !view3d.auto; if (a === 'labels') view3d.labels = !view3d.labels; if (a === 'in') view3d.zoom = Math.min(3, view3d.zoom * 1.2); if (a === 'out') view3d.zoom = Math.max(0.5, view3d.zoom / 1.2); if (['top', 'front', 'side'].includes(a)) { view3d.auto = false; vx = vy = 0; view3d.yaw = a === 'side' ? -Math.PI / 2 : 0; view3d.pitch = a === 'top' ? Math.PI / 2 - 0.001 : 0.12; } syncBtns(); };
+    document.addEventListener('click', onBtn); syncBtns();
+    raf = requestAnimationFrame(frame);
+    return () => { cancelAnimationFrame(raf); ro.disconnect(); document.removeEventListener('click', onBtn); };
+  }
+
+  function insights3d() {
+    const s = state.site, ms = periodMonths().cur, fl = flagged(ms, [s]), a = agg(rows(ms, [s])), last = rows([LAST], [s])[0];
+    const cap = s === 'N01' && N01_CAPACITY ? N01_CAPACITY.value : null, capU = cap && last ? last.itLoadMW / cap : null, rackRed = capU != null && capU >= 0.85;
+    const coolRed = fl.length > 0, anyRed = coolRed || rackRed, L = DC_LAYOUT[s] || DC_LAYOUT['OS-IX'];
+    const lastFlag = flagged(MONTHS, [s])[0];
+    const chip = (st, t) => `<span class="st ${st}">${t}</span>`;
+    const comps = [
+      ['Cooling system', 'CRAH units, chillers and coolant loop', coolRed ? chip('red', 'Unusual') : chip('ok', 'Normal'), coolRed ? `Cooling above expected: ${fl.map(r => `${mShort(r.month)} ${pctS(r.residualPct, 0)}`).join(', ')}.` : `Within ±${(THRESH * 100).toFixed(0)}% of expected in ${rangeLabel()}.${lastFlag ? ` Last flag: ${mLong(lastFlag.month)}.` : ''}`],
+      ['Server halls (IT)', `${L.halls} hall${L.halls > 1 ? 's' : ''} · ${L.halls * L.rows} rack rows (illustrative)`, rackRed ? chip('red', 'Near capacity') : chip('ok', 'Normal'), last ? `${last.itLoadMW.toFixed(1)} MW IT load in ${mLong(LAST)}${cap ? ` (${(capU * 100).toFixed(0)}% of ${cap} MW)` : '; capacity not verified'}.` : ''],
+      ['Efficiency', 'Whole site', a.pue <= PUE_TARGET ? chip('ok', 'On target') : chip('amb', 'Above target'), `PUE ${a.pue.toFixed(3)} vs. target ${PUE_TARGET.toFixed(2)} in ${rangeLabel()}.`],
+      ['Power supply', 'UPS, transformers, generators', chip('na', 'No data'), 'Not covered by the workbook, shown for orientation only.'],
+    ];
+    const banner = anyRed
+      ? `<div class="banner red3d"><span style="color:#ff8f8f">${ic('warn', 24)}</span><div><b>Unusual activity at ${s}</b><p>${coolRed ? `Cooling used more energy than expected (${fl.map(r => `${mLong(r.month)} ${pctS(r.residualPct, 0)}`).join(', ')}). The cooling system is shown in red.` : ''}${rackRed ? ' The server halls are close to full capacity and are shown in red.' : ''} Click the red area for details.</p></div></div>`
+      : `<div class="banner ok"><span style="color:${C.green}">${ic('check', 24)}</span><div><b>Nothing unusual at ${s}</b><p>No cooling or capacity alerts in ${rangeLabel()}. Everything is drawn in the normal colours.</p></div></div>`;
+    app.innerHTML = head('AI Insights', `AI-powered analysis of energy use, efficiency and capacity ${badge()}`, periodSelect()) + sitePicker() + insTabs() + banner + `
+      <div class="grid g21 v3grid">
+        <div class="card v3card" data-info-key="3d site view"><h3>${ic('sites')} 3D site view · ${esc(s)} ${esc(SITE_INFO[s]?.location || '')}</h3>
+          <div class="v3wrap"><canvas id="dc3d" tabindex="0" aria-label="Rotatable 3D drawing of the ${esc(s)} data centre. ${anyRed ? 'Unusual areas are shown in red.' : 'Nothing unusual.'} Use the arrow keys to rotate."></canvas>
+            <div class="v3tools"><button data-v3="reset" title="Reset view (double-click)">Reset</button><button data-v3="top">Top</button><button data-v3="front">Front</button><button data-v3="side">Side</button><span></span><button data-v3="in" aria-label="Zoom in">+</button><button data-v3="out" aria-label="Zoom out">−</button><button data-v3="auto">Auto-rotate</button><button data-v3="labels">Labels</button></div>
+            <div class="v3hint">Drag to rotate in any direction · scroll or pinch to zoom · double-click to reset</div></div></div>
+        <div class="card" data-info-key="what the drawing shows"><h3>${ic('target')} What the drawing shows</h3>
+          <div class="v3legend"><span><i class="lg n"></i>Normal</span><span><i class="lg r"></i>Unusual</span><span><i class="lg p"></i>Coolant loop</span></div>
+          ${comps.map(([n, sub, st, txt]) => `<div class="v3comp"><div class="v3c-h"><b>${n}</b>${st}</div><div class="small">${sub}</div><div class="v3c-t">${txt}</div></div>`).join('')}
+          ${note('Schematic drawing, not a floor plan: the layout is illustrative. The data is per site and month, so the red area marks the affected system, not an exact unit or room.')}
+        </div></div>`;
+    const model = buildModel(s, coolRed, rackRed);
+    model.title = [`BULK · ${s} ${(SITE_INFO[s]?.location || '').toUpperCase()}`, `SITE VIEW · ${rangeLabel().toUpperCase()}`, 'SCHEMATIC · NOT TO SCALE'];
+    const canvas = document.getElementById('dc3d');
+    cleanups.push(mount3d(canvas, model, () => detailsModal((fl[0] || lastFlag || {}).month || LAST)));
+  }
+
   pages.insights = () => {
+    if (state.insTab === '3d') return insights3d();
     const s = state.site, ms = periodMonths().cur;
     const siteRows = rows(MONTHS, [s]);
     const inPeriod = flagged(ms, [s]);
@@ -356,7 +565,7 @@
       impact = `<div class="card" style="margin-bottom:12px"><h3>Actual vs. expected cooling energy (MWh)</h3><div class="chart tall"><canvas id="c1"></canvas></div></div>`;
     }
     const others = flagged().filter(r => r.site !== s);
-    app.innerHTML = head('AI Insights', `AI-powered analysis of energy use, efficiency and capacity ${badge()}`, periodSelect()) + sitePicker() + banner + impact +
+    app.innerHTML = head('AI Insights', `AI-powered analysis of energy use, efficiency and capacity ${badge()}`, periodSelect()) + sitePicker() + insTabs() + banner + impact +
       (others.length ? `<div class="card" style="margin-bottom:12px"><h3>Flags at other sites</h3>${others.map(r => insightCard(r)).join('')}</div>` : '') +
       note(`How the "AI model" works: expected cooling = IT MWh × (0.115 + 0.0055 × max(temperature − 8, 0) + site adjustment). It is a transparent heuristic, not a trained machine-learning model, and the anomalies were injected into synthetic data (workbook M05/M06). Have site engineers confirm any finding before acting.`);
     const labels = siteRows.map(r => mShort(r.month));
@@ -813,6 +1022,9 @@
     [/^insights\|actual vs\. expected cooling/, e('Actual vs. expected cooling', 'The site\'s cooling energy each month compared with what the model expected.', 'Purple line = actual cooling (synthetic data). Dashed line = expected cooling given IT load and outdoor temperature.', 'Where the purple line rises clearly above the dashed line, cooling used more than it should. Purple-shaded months are flagged (+%). The light shading marks the selected period.')],
     [/^insights\|suggested actions/, e('Suggested actions', 'A follow-up checklist for the flag.', 'Standard first checks for unexpected cooling consumption.', 'Tick actions as they are done. Ticks are saved in this browser only.')],
     [/^insights\|estimated impact/, e('Estimated impact', 'What fixing the cause could save.', 'Energy = excess cooling (actual − expected) in the flagged months. Cost = excess MWh × that month\'s price. Share = excess ÷ cooling energy in those months.', 'An upper estimate: it assumes all the excess can be removed.')],
+    [/^insights\|3d site view/, e('3D site view', 'A rotatable drawing of the data centre with its main systems: server halls, cooling units, roof chillers, coolant loop and power supply. Anything unusual in the selected period is drawn in red.', 'Red = a cooling flag (cooling more than ' + (THRESH * 100).toFixed(0) + '% above expected) or server halls above 85% of capacity, for the chosen site and period. The layout is a schematic, not the real floor plan.', 'Drag in any direction to turn it 360°, scroll or pinch to zoom, double-click to reset. Top / Front / Side jump to a standard view. Click the red area for the numbers behind it.')],
+    [/^insights\|what the drawing shows/, e('What the drawing shows', 'The status of each system in the drawing, with the numbers behind it.', 'The same data and rules as the rest of AI Insights.', 'Red = unusual, green = normal, amber = above the efficiency target, grey = no data in the workbook.')],
+    [/^insights\|(unusual activity|nothing unusual)/, e('Site status', 'Whether anything unusual is going on at this site in the selected period.', 'Cooling flags and capacity from the workbook data.', 'If there is red in the drawing, click it to see the details.')],
     [/^insights\|flags at other sites/, e('Flags at other sites', 'Cooling flags at the other data centres.', `Same rule: cooling > ${T12} above expected.`, 'Click one to switch to that site.')],
     // Capacity
     [/^capacity\|installed capacity/, e('Installed capacity (N01)', 'The maximum IT power the N01 site is built to supply to customers.', `Reported operating IT capacity for 2025 (Menon Economics, Aug 2026). The ${N01_PLANNED ? N01_PLANNED.value + ' MW' : ''} planned by 2031 is a projection, not built.`, 'It is capacity, not usage. Compare it with "Utilised" to see how full the site is.')],
@@ -1325,6 +1537,7 @@
   phoneMQ.addEventListener('change', () => render());
   function render() {
     charts.forEach(c => c.destroy()); charts = [];
+    cleanups.forEach(f => { try { f(); } catch (e) { console.error(e); } }); cleanups = [];
     const page = (location.hash || '#home').slice(1);
     let key = pages[page] ? page : 'home';
     if (phoneMQ.matches && key === 'copilot') { history.replaceState(null, '', '#overview'); key = 'overview'; setTimeout(() => openCp(), 0); }
