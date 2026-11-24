@@ -1,6 +1,6 @@
 /* Service worker: makes the dashboard installable and usable offline.
    Bump VERSION whenever app files change so users get the update. */
-const VERSION = 'bulk-v18';
+const VERSION = 'bulk-v19';
 const PRECACHE = [
   './',
   './index.html',
@@ -48,6 +48,17 @@ async function staleWhileRevalidate(request) {
   return cached || (await network) || Response.error();
 }
 
+async function networkFirst(request) {
+  const cache = await caches.open(VERSION);
+  try {
+    const res = await Promise.race([fetch(new Request(request, { cache: 'no-cache' })), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 4000))]);
+    if (res && res.ok) cache.put(request, res.clone());
+    return res;
+  } catch {
+    return (await cache.match(request, { ignoreSearch: true })) || Response.error();
+  }
+}
+
 self.addEventListener('fetch', event => {
   const req = event.request;
   if (req.method !== 'GET') return;
@@ -58,8 +69,9 @@ self.addEventListener('fetch', event => {
     event.respondWith(fetch(req, { cache: 'no-cache' }).catch(async () => (await caches.match('./index.html')) || Response.error()));
     return;
   }
-  // App files and Google Fonts.
-  if (url.origin === location.origin || /fonts\.(googleapis|gstatic)\.com$/.test(url.hostname)) {
-    event.respondWith(staleWhileRevalidate(req));
-  }
+  // App files: network first so the page, scripts and styles always come from the same version.
+  // Falls back to the saved copy when offline or when the network takes longer than 4 s.
+  if (url.origin === location.origin) { event.respondWith(networkFirst(req)); return; }
+  // Google Fonts rarely change: answer from cache, refresh in the background.
+  if (/fonts\.(googleapis|gstatic)\.com$/.test(url.hostname)) event.respondWith(staleWhileRevalidate(req));
 });
