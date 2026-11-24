@@ -1,4 +1,7 @@
-# Bulk – Energy Intelligence dashboard
+# InfraSight
+
+*Visual AI intelligence for smarter data-centre operations.*
+
 
 Final project for AI Ethics (5th semester, ESADE). A dark-themed energy dashboard for Bulk's data centre sites: N01 (Vennesla/Kristiansand), OS-IX (Oslo) and DK01 (Esbjerg). It is also a progressive web app (PWA), so you can install it and use it offline.
 

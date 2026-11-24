@@ -46,7 +46,7 @@
       showToast('To install: in Safari use <b>Share → Add to Home Screen</b> (iPhone/iPad) or <b>File → Add to Dock</b> (Mac).', 7000);
     }
   });
-  window.addEventListener('appinstalled', () => { installBtn.hidden = true; showToast('Bulk Energy installed.', 3000); });
+  window.addEventListener('appinstalled', () => { installBtn.hidden = true; showToast('InfraSight installed.', 3000); });
   const isSafari = /^((?!chrome|android|crios|fxios|edg).)*safari/i.test(navigator.userAgent);
   if (isSafari && !standalone() && /^https?:$/.test(location.protocol)) installBtn.hidden = false;
 
