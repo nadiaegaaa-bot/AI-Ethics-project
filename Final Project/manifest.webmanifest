@@ -1,9 +1,9 @@
 {
-  "name": "Bulk – Energy Intelligence",
-  "short_name": "Bulk Energy",
-  "description": "Energy, cooling, cost, capacity and benchmark dashboard for Bulk's data centre sites (AI Ethics final project, ESADE).",
+  "name": "InfraSight",
+  "short_name": "InfraSight",
+  "description": "Visual AI intelligence for smarter data-centre operations. Energy, cooling, cost, capacity and benchmarks for Bulk's data centres (AI Ethics final project, ESADE).",
   "id": "./",
-  "start_url": "./index.html#overview",
+  "start_url": "./index.html#home",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
